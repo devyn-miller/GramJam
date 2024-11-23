@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Volume2, VolumeX, PauseCircle, PlayCircle, HelpCircle, Share2, Shuffle, RotateCcw, Sun, Moon } from 'lucide-react';
+import { Volume2, VolumeX, PauseCircle, PlayCircle, HelpCircle, Share2, Shuffle, RotateCcw, Sun, Moon, Settings } from 'lucide-react';
 import { useAudioContext } from '../hooks/useAudioContext';
 import { useGameLogic } from '../hooks/useGameLogic';
 import { GameStats } from './GameStats';
@@ -31,6 +31,8 @@ export default function GameBoard() {
     }
     return false;
   });
+  const [showTimesUp, setShowTimesUp] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   const { playSound } = useAudioContext();
   const { 
@@ -48,6 +50,32 @@ export default function GameBoard() {
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDarkMode);
   }, [isDarkMode]);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (gameState === 'playing' && !isPaused && timeLimit !== 'untimed') {
+      timer = setInterval(() => {
+        setTimeLeft(prev => {
+          if (prev <= 0) {
+            setGameState('gameover');
+            setShowTimesUp(true);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [gameState, isPaused, timeLimit]);
+
+  useEffect(() => {
+    if (showTimesUp) {
+      const timer = setTimeout(() => {
+        setShowTimesUp(false);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [showTimesUp]);
 
   const handleStart = () => {
     initializeGame(difficulty, letterCount);
@@ -85,6 +113,11 @@ export default function GameBoard() {
     setDisplayLetters(shuffleString(wordSet.letters));
   };
 
+  const handleSettingsClick = () => {
+    setGameState('setup');
+    playSound('click');
+  };
+
   useEffect(() => {
     if (gameState === 'countdown' && countdown > 0) {
       const timer = setInterval(() => setCountdown(c => c - 1), 1000);
@@ -95,21 +128,6 @@ export default function GameBoard() {
       setDisplayLetters(shuffleString(wordSet.letters));
     }
   }, [countdown, gameState, timeLimit, wordSet.letters]);
-
-  useEffect(() => {
-    if (gameState === 'playing' && !isPaused && timeLeft > 0 && timeLimit !== 'untimed') {
-      const timer = setInterval(() => {
-        setTimeLeft(prev => {
-          if (prev <= 1) {
-            setGameState('gameover');
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-      return () => clearInterval(timer);
-    }
-  }, [gameState, isPaused, timeLeft, timeLimit]);
 
   if (gameState === 'setup') {
     return <StartScreen 
@@ -127,57 +145,55 @@ export default function GameBoard() {
   return (
     <div className={`min-h-screen bg-gradient-to-br ${isDarkMode ? 'from-gray-900 to-indigo-900' : 'from-indigo-500 to-purple-600'} p-4`}>
       <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-8">
+        {showTimesUp && (
+          <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
+            <div className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-2xl transform scale-100 animate-bounce">
+              <h2 className="text-4xl font-bold text-red-600 dark:text-red-400 mb-4">Time's Up!</h2>
+              <p className="text-xl text-gray-600 dark:text-gray-400">Final Score: {score}</p>
+            </div>
+          </div>
+        )}
+
         <div className="flex justify-between items-center mb-8">
           <div className="flex items-center gap-4">
             <h1 className="text-4xl font-bold text-indigo-600 dark:text-indigo-400">GramJam</h1>
             <button
-              onClick={handleRestart}
+              onClick={handleSettingsClick}
               className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
-              title="Restart Game"
+              title="Settings"
             >
-              <RotateCcw size={24} className="dark:text-gray-200" />
-            </button>
-            <button
-              onClick={() => setShowTutorial(true)}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
-              title="How to Play"
-            >
-              <HelpCircle size={24} className="dark:text-gray-200" />
+              <Settings size={24} className="text-gray-600 dark:text-gray-400" />
             </button>
           </div>
 
           <div className="flex items-center gap-4">
             <button
-              onClick={() => setIsMuted(!isMuted)}
+              onClick={() => setShowTutorial(true)}
               className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
-              title={isMuted ? 'Unmute' : 'Mute'}
+              title="How to Play"
             >
-              {isMuted ? (
-                <VolumeX size={24} className="dark:text-gray-200" />
-              ) : (
-                <Volume2 size={24} className="dark:text-gray-200" />
-              )}
+              <HelpCircle size={24} className="text-gray-600 dark:text-gray-400" />
             </button>
             <button
-              onClick={() => setIsPaused(!isPaused)}
+              onClick={() => setIsMuted(!isMuted)}
               className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
-              title={isPaused ? 'Resume' : 'Pause'}
+              title={isMuted ? "Unmute" : "Mute"}
             >
-              {isPaused ? (
-                <PlayCircle size={24} className="dark:text-gray-200" />
+              {isMuted ? (
+                <VolumeX size={24} className="text-gray-600 dark:text-gray-400" />
               ) : (
-                <PauseCircle size={24} className="dark:text-gray-200" />
+                <Volume2 size={24} className="text-gray-600 dark:text-gray-400" />
               )}
             </button>
             <button
               onClick={() => setIsDarkMode(!isDarkMode)}
               className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
-              title={isDarkMode ? 'Light Mode' : 'Dark Mode'}
+              title={isDarkMode ? "Light Mode" : "Dark Mode"}
             >
               {isDarkMode ? (
-                <Sun size={24} className="dark:text-gray-200" />
+                <Sun size={24} className="text-gray-600 dark:text-gray-400" />
               ) : (
-                <Moon size={24} className="text-gray-800" />
+                <Moon size={24} className="text-gray-600 dark:text-gray-400" />
               )}
             </button>
           </div>
@@ -199,6 +215,7 @@ export default function GameBoard() {
               streak={streak} 
               difficulty={difficulty} 
               timeLimit={timeLimit}
+              isTimeAlmostUp={timeLeft <= 3 && timeLeft > 0}
             />
 
             <div className="grid grid-cols-3 gap-8 mb-8">
@@ -209,7 +226,11 @@ export default function GameBoard() {
                       {displayLetters.split('').map((letter, index) => (
                         <div
                           key={index}
-                          className="w-14 h-14 flex items-center justify-center text-2xl font-bold bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-400 rounded-lg shadow-md transition-transform hover:scale-105 border-2 border-indigo-200 dark:border-indigo-800"
+                          className="w-16 h-16 flex items-center justify-center text-3xl font-bold bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-400 rounded-lg shadow-lg transition-all hover:scale-110 hover:rotate-3 border-2 border-indigo-200 dark:border-indigo-800 cursor-pointer"
+                          style={{
+                            transform: `rotate(${Math.random() * 6 - 3}deg)`,
+                            animation: 'float 3s ease-in-out infinite',
+                          }}
                         >
                           {letter.toUpperCase()}
                         </div>
@@ -224,7 +245,7 @@ export default function GameBoard() {
                         className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
                         title="Shuffle Letters"
                       >
-                        <Shuffle size={24} className="dark:text-gray-200" />
+                        <Shuffle size={24} className="text-gray-600 dark:text-gray-400" />
                       </button>
                     </div>
                   </div>
@@ -297,6 +318,13 @@ export default function GameBoard() {
       {showTutorial && (
         <Tutorial onClose={() => setShowTutorial(false)} />
       )}
+      <style jsx>{`
+        @keyframes float {
+          0% { transform: translateY(0px); }
+          50% { transform: translateY(-10px); }
+          100% { transform: translateY(0px); }
+        }
+      `}</style>
     </div>
   );
 }

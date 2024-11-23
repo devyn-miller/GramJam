@@ -1,4 +1,5 @@
 import React from 'react';
+import { X } from 'lucide-react';
 
 interface TutorialProps {
   onClose: () => void;
@@ -6,51 +7,61 @@ interface TutorialProps {
 
 export function Tutorial({ onClose }: TutorialProps) {
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-8 max-w-lg">
-        <h2 className="text-2xl font-bold mb-4 dark:text-white">How to Play GramJam</h2>
-        
-        <div className="space-y-6 mb-6">
-          <div>
-            <h3 className="text-lg font-semibold mb-2 dark:text-gray-200">Game Rules</h3>
-            <ul className="space-y-2 text-gray-700 dark:text-gray-300">
-              <li>🎯 Form valid words using the given letters</li>
-              <li>📝 Words must be at least 3 letters long</li>
-              <li>⏱️ Race against the timer to find as many words as possible</li>
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="text-lg font-semibold mb-2 dark:text-gray-200">Scoring System</h3>
-            <ul className="space-y-2 text-gray-700 dark:text-gray-300">
-              <li>📊 Base points = Word Length × 10</li>
-              <li>🔥 Streak bonus = 5 points per consecutive word</li>
-              <li>⭐ Difficulty multipliers:
-                <ul className="ml-4 mt-1">
-                  <li>- Easy (6 letters): 1×</li>
-                  <li>- Medium (7 letters): 1.5×</li>
-                  <li>- Hard (8 letters): 2×</li>
-                </ul>
-              </li>
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="text-lg font-semibold mb-2 dark:text-gray-200">Tips</h3>
-            <ul className="space-y-2 text-gray-700 dark:text-gray-300">
-              <li>🔄 Use shuffle when stuck</li>
-              <li>⏸️ Pause anytime to take a break</li>
-              <li>📱 Share your high scores with friends</li>
-            </ul>
-          </div>
-        </div>
-
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-8 max-w-2xl w-full mx-4 relative">
         <button
           onClick={onClose}
-          className="w-full py-3 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition-colors dark:bg-indigo-500 dark:hover:bg-indigo-600"
+          className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
         >
-          Got it!
+          <X size={24} className="text-gray-600 dark:text-gray-400" />
         </button>
+
+        <h2 className="text-2xl font-bold text-indigo-600 dark:text-indigo-400 mb-6">How to Play GramJam</h2>
+
+        <div className="space-y-6 text-gray-700 dark:text-gray-300">
+          <section>
+            <h3 className="text-lg font-semibold mb-2">Game Setup</h3>
+            <ul className="list-disc pl-5 space-y-2">
+              <li>Choose your preferred number of letters (6-9)</li>
+              <li>Select a time limit (30s, 60s, 90s, or untimed)</li>
+              <li>Pick your difficulty level (easy, medium, or hard)</li>
+            </ul>
+          </section>
+
+          <section>
+            <h3 className="text-lg font-semibold mb-2">Gameplay</h3>
+            <ul className="list-disc pl-5 space-y-2">
+              <li>Create as many words as possible using the given letters</li>
+              <li>Words must be at least 3 letters long</li>
+              <li>Each letter can only be used once per word</li>
+              <li>Build your streak by finding valid words consecutively</li>
+            </ul>
+          </section>
+
+          <section>
+            <h3 className="text-lg font-semibold mb-2">Scoring</h3>
+            <ul className="list-disc pl-5 space-y-2">
+              <li>Longer words earn more points</li>
+              <li>Maintain a streak for bonus points</li>
+              <li>Different difficulty levels offer score multipliers</li>
+            </ul>
+          </section>
+
+          <section>
+            <h3 className="text-lg font-semibold mb-2">Features</h3>
+            <ul className="list-disc pl-5 space-y-2">
+              <li>Click the settings icon to change game parameters</li>
+              <li>Use the shuffle button to rearrange letters</li>
+              <li>Toggle dark/light mode for your preference</li>
+              <li>Mute/unmute sound effects as needed</li>
+              <li>Share your results with friends</li>
+            </ul>
+          </section>
+
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">
+            Press Enter or click Submit to check your word. Good luck!
+          </p>
+        </div>
       </div>
     </div>
   );
