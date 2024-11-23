@@ -16,20 +16,21 @@ export function useGameLogic() {
     return saved ? parseInt(saved, 10) : 0;
   });
   const [streak, setStreak] = useState(0);
-  const [streakPoints, setStreakPoints] = useState<{ [key: string]: number }>({});
+  const [scoreHistory, setScoreHistory] = useState<Array<{ timestamp: number; score: number }>>([]);
 
   const initializeGame = useCallback((difficulty: Difficulty) => {
     const newWordSet = generateWordSet(difficulty);
     setWordSet(newWordSet);
     setScore(0);
     setStreak(0);
-    setStreakPoints({});
+    setScoreHistory([]);
   }, []);
 
   const submitWord = useCallback((word: string): WordSubmitResult => {
     const normalizedWord = word.toLowerCase();
 
     if (normalizedWord.length < 3) {
+      setStreak(0);
       return { valid: false, message: 'Word must be at least 3 letters long' };
     }
 
@@ -39,16 +40,19 @@ export function useGameLogic() {
     for (const letter of wordLetters) {
       const index = availableLetters.indexOf(letter);
       if (index === -1) {
+        setStreak(0);
         return { valid: false, message: 'Invalid letters used' };
       }
       availableLetters.splice(index, 1);
     }
 
     if (wordSet.foundWords.includes(normalizedWord)) {
+      // No penalty for repeated words, just return early
       return { valid: false, message: 'Word already found' };
     }
 
     if (!wordSet.possibleWords.includes(normalizedWord)) {
+      setStreak(0);
       return { valid: false, message: 'Not a valid word' };
     }
 
@@ -62,10 +66,7 @@ export function useGameLogic() {
     
     setScore(newScore);
     setStreak(prev => prev + 1);
-    setStreakPoints(prev => ({
-      ...prev,
-      [normalizedWord]: streakBonus
-    }));
+    setScoreHistory(prev => [...prev, { timestamp: Date.now(), score: newScore }]);
     setWordSet(prev => ({
       ...prev,
       foundWords: [...prev.foundWords, normalizedWord]
@@ -87,7 +88,7 @@ export function useGameLogic() {
     score,
     highScore,
     streak,
-    streakPoints,
+    scoreHistory,
     initializeGame,
     submitWord
   };

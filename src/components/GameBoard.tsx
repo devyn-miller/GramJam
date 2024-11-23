@@ -8,6 +8,7 @@ import { FoundWords } from './FoundWords';
 import { StartScreen } from './StartScreen';
 import { Difficulty, TimeLimit, GameState } from '../types/game';
 import { shuffleString } from '../utils/wordGenerator';
+import { PerformanceGraph } from './PerformanceGraph';
 
 export default function GameBoard() {
   const [difficulty, setDifficulty] = useState<Difficulty>('medium');
@@ -30,7 +31,7 @@ export default function GameBoard() {
   });
 
   const { playSound } = useAudioContext();
-  const { wordSet, score, highScore, streak, streakPoints, initializeGame, submitWord } = useGameLogic();
+  const { wordSet, score, highScore, streak, scoreHistory, initializeGame, submitWord } = useGameLogic();
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDarkMode);
@@ -73,14 +74,36 @@ export default function GameBoard() {
   };
 
   const shareScore = async () => {
+    const canvas = document.querySelector('canvas');
+    let imageUrl = '';
+    
+    if (canvas) {
+      imageUrl = canvas.toDataURL();
+    }
+
     const text = `🎮 GramJam Challenge!\n🎯 Score: ${score} points\n🔥 Streak: ${streak}\n⏱️ Time: ${timeLimit}s\n🏆 High Score: ${highScore}\n\nCan you beat my score? Play now at [game-url]`;
     
-    try {
-      await navigator.share({
-        title: 'GramJam Score',
-        text
-      });
-    } catch (err) {
+    if (navigator.share) {
+      try {
+        const shareData: any = {
+          title: 'GramJam Score',
+          text
+        };
+
+        if (canvas) {
+          const blob = await (await fetch(imageUrl)).blob();
+          shareData.files = [
+            new File([blob], 'performance.png', { type: 'image/png' })
+          ];
+        }
+
+        await navigator.share(shareData);
+      } catch (err) {
+        navigator.clipboard.writeText(text);
+        setSuccessMessage('Score copied to clipboard!');
+        setTimeout(() => setSuccessMessage(''), 1500);
+      }
+    } else {
       navigator.clipboard.writeText(text);
       setSuccessMessage('Score copied to clipboard!');
       setTimeout(() => setSuccessMessage(''), 1500);
@@ -266,10 +289,34 @@ export default function GameBoard() {
                 words={wordSet.foundWords} 
                 total={wordSet.possibleWords.length} 
                 difficulty={difficulty}
-                streakPoints={streakPoints}
+                streakPoints={scoreHistory}
               />
             </div>
           </>
+        )}
+
+        {gameState === 'gameover' && (
+          <div className="mt-8">
+            <PerformanceGraph 
+              scoreHistory={scoreHistory} 
+              isDarkMode={isDarkMode}
+              timeLimit={timeLimit}
+            />
+            <div className="flex justify-center gap-4 mt-8">
+              <button
+                onClick={() => navigator.clipboard.writeText(`🎮 GramJam Challenge!\n🎯 Score: ${score} points\n🔥 Streak: ${streak}\n⏱️ Time: ${timeLimit}s\n🏆 High Score: ${highScore}\n\nCan you beat my score? Play now at [game-url]`)}
+                className="px-6 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+              >
+                Copy Score
+              </button>
+              <button
+                onClick={shareScore}
+                className="px-6 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg transition-colors"
+              >
+                Share with Graph
+              </button>
+            </div>
+          </div>
         )}
 
         {showTutorial && <Tutorial onClose={() => setShowTutorial(false)} />}
