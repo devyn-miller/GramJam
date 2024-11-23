@@ -25,17 +25,20 @@ Check out the live demo at [https://devyn-miller.github.io/GramJam/](https://dev
 ## 📦 Installation
 
 1. Clone the repository:
+
 ```bash
 git clone https://github.com/devyn-miller/GramJam.git
 cd GramJam
 ```
 
 2. Install dependencies:
+
 ```bash
 npm install
 ```
 
 3. Start the development server:
+
 ```bash
 npm run dev
 ```
@@ -55,9 +58,20 @@ The project is automatically deployed to GitHub Pages using GitHub Actions. Any 
 
 ## 📝 License
 
-MIT License - feel free to use this project however you'd like!
+**Proprietary and Confidential**
+
+This project is protected under strict proprietary license. All rights reserved.
+No part of this software may be reproduced, distributed, or used in any form without explicit written permission from Devyn Miller.
+
+To request permission to use this software, please contact:
+
+- GitHub: [@devyn-miller](https://github.com/devyn-miller)
+- Email: [devmiller@chapman.edu](mailto:devmiller@chapman.edu)
+
+See the [LICENSE](LICENSE) file for details.
 
 ## 👤 Author
 
 Devyn Miller
+
 - GitHub: [@devyn-miller](https://github.com/devyn-miller)
