@@ -12,6 +12,7 @@ import {
   TimeScale,
 } from 'chart.js';
 import 'chartjs-adapter-date-fns';
+import { TimeLimit, PerformanceData } from '../types/game';
 
 ChartJS.register(
   CategoryScale,
@@ -25,47 +26,23 @@ ChartJS.register(
 );
 
 interface PerformanceGraphProps {
-  scoreHistory: Array<{ timestamp: number; score: number }>;
+  performanceData: PerformanceData[];
   isDarkMode: boolean;
-  timeLimit: number;
+  timeLimit: TimeLimit;
 }
 
-export function PerformanceGraph({ scoreHistory, isDarkMode, timeLimit }: PerformanceGraphProps) {
-  const startTime = scoreHistory.length > 0 ? scoreHistory[0].timestamp : Date.now();
+export function PerformanceGraph({ performanceData, isDarkMode, timeLimit }: PerformanceGraphProps) {
+  const startTime = performanceData.length > 0 ? performanceData[0].timestamp : Date.now();
+  const endTime = timeLimit === 'untimed' 
+    ? (performanceData.length > 0 ? performanceData[performanceData.length - 1].timestamp : startTime + 120000)
+    : startTime + (Number(timeLimit) * 1000);
   
-  const scoreData = {
-    datasets: [
-      {
-        label: 'Score',
-        data: scoreHistory.map(entry => ({
-          x: entry.timestamp,
-          y: entry.score,
-        })),
-        borderColor: isDarkMode ? 'rgb(129, 140, 248)' : 'rgb(99, 102, 241)',
-        backgroundColor: isDarkMode ? 'rgba(129, 140, 248, 0.5)' : 'rgba(99, 102, 241, 0.5)',
-        tension: 0.4,
-      },
-    ],
-  };
-
-  const wordsData = {
-    datasets: [
-      {
-        label: 'Words Found',
-        data: scoreHistory.map((_, index) => ({
-          x: scoreHistory[index].timestamp,
-          y: index + 1,
-        })),
-        borderColor: isDarkMode ? 'rgb(248, 129, 140)' : 'rgb(241, 99, 102)',
-        backgroundColor: isDarkMode ? 'rgba(248, 129, 140, 0.5)' : 'rgba(241, 99, 102, 0.5)',
-        tension: 0.4,
-      },
-    ],
-  };
-
   const commonOptions = {
     responsive: true,
     maintainAspectRatio: false,
+    animation: {
+      duration: 0 // Disable animations for better performance
+    },
     plugins: {
       legend: {
         display: false,
@@ -77,24 +54,27 @@ export function PerformanceGraph({ scoreHistory, isDarkMode, timeLimit }: Perfor
         time: {
           unit: 'second' as const,
           displayFormats: {
-            second: 'ss"s"',
+            second: 's\'s\'',
           },
+          tooltipFormat: 'ss\'s\'',
         },
         min: startTime,
-        max: startTime + (timeLimit * 1000),
+        max: endTime,
         title: {
           display: true,
-          text: 'Time (seconds)',
+          text: 'Time',
           color: isDarkMode ? '#e5e7eb' : '#1f2937',
         },
         ticks: {
           color: isDarkMode ? '#e5e7eb' : '#1f2937',
+          callback: (value: any) => `${Math.floor((value - startTime) / 1000)}s`,
         },
         grid: {
           color: isDarkMode ? 'rgba(229, 231, 235, 0.1)' : 'rgba(31, 41, 55, 0.1)',
         },
       },
       y: {
+        beginAtZero: true,
         title: {
           display: true,
           color: isDarkMode ? '#e5e7eb' : '#1f2937',
@@ -107,6 +87,38 @@ export function PerformanceGraph({ scoreHistory, isDarkMode, timeLimit }: Perfor
         },
       },
     },
+  };
+
+  const scoreData = {
+    datasets: [
+      {
+        label: 'Score',
+        data: performanceData.map(entry => ({
+          x: entry.timestamp,
+          y: entry.score,
+        })),
+        borderColor: isDarkMode ? 'rgb(129, 140, 248)' : 'rgb(99, 102, 241)', // Indigo
+        backgroundColor: isDarkMode ? 'rgba(129, 140, 248, 0.5)' : 'rgba(99, 102, 241, 0.5)',
+        tension: 0.4,
+        pointRadius: 2,
+      },
+    ],
+  };
+
+  const wordsData = {
+    datasets: [
+      {
+        label: 'Words Found',
+        data: performanceData.map(entry => ({
+          x: entry.timestamp,
+          y: entry.wordsFound,
+        })),
+        borderColor: isDarkMode ? 'rgb(248, 113, 113)' : 'rgb(239, 68, 68)', // Red
+        backgroundColor: isDarkMode ? 'rgba(248, 113, 113, 0.5)' : 'rgba(239, 68, 68, 0.5)',
+        tension: 0.4,
+        pointRadius: 2,
+      },
+    ],
   };
 
   const scoreOptions = {
@@ -147,18 +159,19 @@ export function PerformanceGraph({ scoreHistory, isDarkMode, timeLimit }: Perfor
         ...commonOptions.scales.y,
         title: {
           ...commonOptions.scales.y.title,
-          text: 'Number of Words',
+          text: 'Words',
         },
         ticks: {
           ...commonOptions.scales.y.ticks,
           stepSize: 1,
+          precision: 0,
         },
       },
     },
   };
 
   return (
-    <div className="space-y-8">
+    <div className="performance-graphs space-y-8">
       <div className="w-full h-64">
         <Line data={scoreData} options={scoreOptions} />
       </div>

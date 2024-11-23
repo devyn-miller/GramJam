@@ -1,33 +1,32 @@
 import React from 'react';
-import { TimeLimit } from '../types/game';
-import { Clock } from 'lucide-react';
+import { AlignJustify } from 'lucide-react';
 
-interface TimeSelectorProps {
-  timeLimit: TimeLimit;
-  onSelect: (time: TimeLimit) => void;
+interface LetterSelectorProps {
+  letterCount: number;
+  onSelect: (count: number) => void;
 }
 
-export function TimeSelector({ timeLimit, onSelect }: TimeSelectorProps) {
-  const times: TimeLimit[] = [30, 60, 90, 120, 'untimed'];
+export function LetterSelector({ letterCount, onSelect }: LetterSelectorProps) {
+  const counts = [6, 7, 8, 9];
 
   return (
     <div className="flex flex-col items-center gap-4">
       <div className="flex justify-center items-center gap-2 text-gray-600 dark:text-gray-400">
-        <Clock size={20} />
-        <span>Time Limit</span>
+        <AlignJustify size={20} />
+        <span>Letter Count</span>
       </div>
       <div className="flex flex-wrap justify-center gap-2">
-        {times.map((time) => (
+        {counts.map((count) => (
           <button
-            key={time}
-            onClick={() => onSelect(time)}
+            key={count}
+            onClick={() => onSelect(count)}
             className={`px-4 py-2 rounded-full transition-colors ${
-              timeLimit === time
+              letterCount === count
                 ? 'bg-indigo-600 text-white dark:bg-indigo-500'
                 : 'bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200'
             }`}
           >
-            {time === 'untimed' ? '∞' : `${time}s`}
+            {count} letters
           </button>
         ))}
       </div>
