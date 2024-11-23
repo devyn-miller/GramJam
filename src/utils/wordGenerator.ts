@@ -37,6 +37,10 @@ function getSubwords(letters: string, minLength: number = 3): string[] {
   });
 }
 
+export function isWordInDictionary(word: string): boolean {
+  return validWords.includes(word.toLowerCase());
+}
+
 export function generateWordSet(difficulty: Difficulty): WordSet {
   const letterCount = difficulty === 'easy' ? 6 : difficulty === 'medium' ? 7 : 8;
   const letters = generateRandomLetters(letterCount);

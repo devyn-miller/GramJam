@@ -31,10 +31,14 @@ interface PerformanceGraphProps {
   timeLimit: TimeLimit;
 }
 
-export function PerformanceGraph({ performanceData, isDarkMode, timeLimit }: PerformanceGraphProps) {
-  const startTime = performanceData.length > 0 ? performanceData[0].timestamp : Date.now();
+export function PerformanceGraph({ performanceData = [], isDarkMode, timeLimit }: PerformanceGraphProps) {
+  if (!performanceData || performanceData.length === 0) {
+    return null; // Don't render anything if there's no data
+  }
+
+  const startTime = performanceData[0].timestamp;
   const endTime = timeLimit === 'untimed' 
-    ? (performanceData.length > 0 ? performanceData[performanceData.length - 1].timestamp : startTime + 120000)
+    ? performanceData[performanceData.length - 1].timestamp
     : startTime + (Number(timeLimit) * 1000);
   
   const commonOptions = {

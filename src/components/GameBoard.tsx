@@ -43,9 +43,14 @@ export default function GameBoard() {
     longestStreak,
     performanceData,
     initializeGame, 
-    submitWord,
+    handleSubmit: submitWord,
     getGameStats 
   } = useGameLogic();
+
+  // Initialize game state when component mounts
+  useEffect(() => {
+    initializeGame(difficulty, letterCount);
+  }, []);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDarkMode);
@@ -99,19 +104,21 @@ export default function GameBoard() {
 
   const handleShuffle = () => {
     if (!isMuted) playSound('shuffle');
-    setDisplayLetters(shuffleString(wordSet.letters));
+    if (wordSet) {
+      setDisplayLetters(shuffleString(wordSet.letters));
+    }
   };
 
   useEffect(() => {
     if (gameState === 'countdown' && countdown > 0) {
       const timer = setInterval(() => setCountdown(c => c - 1), 1000);
       return () => clearInterval(timer);
-    } else if (gameState === 'countdown' && countdown === 0) {
+    } else if (gameState === 'countdown' && countdown === 0 && wordSet) {
       setGameState('playing');
       setTimeLeft(timeLimit === 'untimed' ? Infinity : timeLimit);
       setDisplayLetters(shuffleString(wordSet.letters));
     }
-  }, [countdown, gameState, timeLimit, wordSet.letters]);
+  }, [countdown, gameState, timeLimit, wordSet]);
 
   useEffect(() => {
     if (gameState === 'playing' && !isPaused && timeLeft > 0 && timeLimit !== 'untimed') {

@@ -30,10 +30,12 @@ export function useGameLogic() {
   const [successMessage, setSuccessMessage] = useState('');
   const [gamePerformance, setGamePerformance] = useState<GamePerformance>([]);
   const [startTime] = useState(() => Date.now());
+  const [wordSet, setWordSet] = useState<WordSet>({ letters: '', possibleWords: [] });
 
   const initializeGame = useCallback((difficulty: Difficulty, letterCount: number) => {
-    const letters = generateLetters(letterCount, difficulty);
-    setDisplayLetters(letters);
+    const newWordSet = generateWordSet(difficulty);
+    setWordSet(newWordSet);
+    setDisplayLetters(newWordSet.letters);
     setScore(0);
     setStreak(0);
     setFoundWords([]);
@@ -152,6 +154,7 @@ export function useGameLogic() {
     successMessage,
     gamePerformance,
     foundWords,
+    wordSet,
     initializeGame,
     handleSubmit,
     shuffleLetters: () => setDisplayLetters(shuffleString(displayLetters)),
