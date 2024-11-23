@@ -31,8 +31,8 @@ export default function GameBoard() {
     }
     return false;
   });
-  const [showTimesUp, setShowTimesUp] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [isTimeUp, setIsTimeUp] = useState(false);
 
   const { playSound } = useAudioContext();
   const { 
@@ -52,30 +52,19 @@ export default function GameBoard() {
   }, [isDarkMode]);
 
   useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (gameState === 'playing' && !isPaused && timeLimit !== 'untimed') {
-      timer = setInterval(() => {
-        setTimeLeft(prev => {
-          if (prev <= 0) {
-            setGameState('gameover');
-            setShowTimesUp(true);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
+    if (timeLeft <= 3 && timeLeft > 0 && gameState === 'playing' && timeLimit !== 'untimed') {
+      // Flash the timer in red for last 3 seconds
+      const timerElement = document.getElementById('timer');
+      if (timerElement) {
+        timerElement.classList.add('animate-pulse', 'text-red-600', 'dark:text-red-400');
+      }
     }
-    return () => clearInterval(timer);
-  }, [gameState, isPaused, timeLimit]);
-
-  useEffect(() => {
-    if (showTimesUp) {
-      const timer = setTimeout(() => {
-        setShowTimesUp(false);
-      }, 3000);
-      return () => clearTimeout(timer);
+    
+    if (timeLeft === 0 && !isTimeUp) {
+      setIsTimeUp(true);
+      setTimeout(() => setIsTimeUp(false), 2000); // Hide "Time's Up!" after 2 seconds
     }
-  }, [showTimesUp]);
+  }, [timeLeft, gameState, timeLimit]);
 
   const handleStart = () => {
     initializeGame(difficulty, letterCount);
@@ -113,11 +102,6 @@ export default function GameBoard() {
     setDisplayLetters(shuffleString(wordSet.letters));
   };
 
-  const handleSettingsClick = () => {
-    setGameState('setup');
-    playSound('click');
-  };
-
   useEffect(() => {
     if (gameState === 'countdown' && countdown > 0) {
       const timer = setInterval(() => setCountdown(c => c - 1), 1000);
@@ -128,6 +112,21 @@ export default function GameBoard() {
       setDisplayLetters(shuffleString(wordSet.letters));
     }
   }, [countdown, gameState, timeLimit, wordSet.letters]);
+
+  useEffect(() => {
+    if (gameState === 'playing' && !isPaused && timeLeft > 0 && timeLimit !== 'untimed') {
+      const timer = setInterval(() => {
+        setTimeLeft(prev => {
+          if (prev <= 1) {
+            setGameState('gameover');
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [gameState, isPaused, timeLeft, timeLimit]);
 
   if (gameState === 'setup') {
     return <StartScreen 
@@ -144,56 +143,68 @@ export default function GameBoard() {
 
   return (
     <div className={`min-h-screen bg-gradient-to-br ${isDarkMode ? 'from-gray-900 to-indigo-900' : 'from-indigo-500 to-purple-600'} p-4`}>
-      <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-8">
-        {showTimesUp && (
-          <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
-            <div className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-2xl transform scale-100 animate-bounce">
-              <h2 className="text-4xl font-bold text-red-600 dark:text-red-400 mb-4">Time's Up!</h2>
-              <p className="text-xl text-gray-600 dark:text-gray-400">Final Score: {score}</p>
-            </div>
-          </div>
-        )}
+      <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-8 relative">
+        <div className="absolute top-4 right-4 flex gap-2">
+          <button
+            onClick={() => setShowTutorial(true)}
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+            title="How to Play"
+          >
+            <HelpCircle size={24} className="text-gray-600 dark:text-gray-400" />
+          </button>
+          <button
+            onClick={() => setShowSettings(true)}
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+            title="Settings"
+          >
+            <Settings size={24} className="text-gray-600 dark:text-gray-400" />
+          </button>
+        </div>
 
         <div className="flex justify-between items-center mb-8">
           <div className="flex items-center gap-4">
             <h1 className="text-4xl font-bold text-indigo-600 dark:text-indigo-400">GramJam</h1>
             <button
-              onClick={handleSettingsClick}
+              onClick={handleRestart}
               className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
-              title="Settings"
+              title="Restart Game"
             >
-              <Settings size={24} className="text-gray-600 dark:text-gray-400" />
+              <RotateCcw size={24} className="dark:text-gray-200" />
             </button>
           </div>
 
           <div className="flex items-center gap-4">
             <button
-              onClick={() => setShowTutorial(true)}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
-              title="How to Play"
-            >
-              <HelpCircle size={24} className="text-gray-600 dark:text-gray-400" />
-            </button>
-            <button
               onClick={() => setIsMuted(!isMuted)}
               className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
-              title={isMuted ? "Unmute" : "Mute"}
+              title={isMuted ? 'Unmute' : 'Mute'}
             >
               {isMuted ? (
-                <VolumeX size={24} className="text-gray-600 dark:text-gray-400" />
+                <VolumeX size={24} className="dark:text-gray-200" />
               ) : (
-                <Volume2 size={24} className="text-gray-600 dark:text-gray-400" />
+                <Volume2 size={24} className="dark:text-gray-200" />
+              )}
+            </button>
+            <button
+              onClick={() => setIsPaused(!isPaused)}
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+              title={isPaused ? 'Resume' : 'Pause'}
+            >
+              {isPaused ? (
+                <PlayCircle size={24} className="dark:text-gray-200" />
+              ) : (
+                <PauseCircle size={24} className="dark:text-gray-200" />
               )}
             </button>
             <button
               onClick={() => setIsDarkMode(!isDarkMode)}
               className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
-              title={isDarkMode ? "Light Mode" : "Dark Mode"}
+              title={isDarkMode ? 'Light Mode' : 'Dark Mode'}
             >
               {isDarkMode ? (
-                <Sun size={24} className="text-gray-600 dark:text-gray-400" />
+                <Sun size={24} className="dark:text-gray-200" />
               ) : (
-                <Moon size={24} className="text-gray-600 dark:text-gray-400" />
+                <Moon size={24} className="text-gray-800" />
               )}
             </button>
           </div>
@@ -215,7 +226,6 @@ export default function GameBoard() {
               streak={streak} 
               difficulty={difficulty} 
               timeLimit={timeLimit}
-              isTimeAlmostUp={timeLeft <= 3 && timeLeft > 0}
             />
 
             <div className="grid grid-cols-3 gap-8 mb-8">
@@ -226,11 +236,8 @@ export default function GameBoard() {
                       {displayLetters.split('').map((letter, index) => (
                         <div
                           key={index}
-                          className="w-16 h-16 flex items-center justify-center text-3xl font-bold bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-400 rounded-lg shadow-lg transition-all hover:scale-110 hover:rotate-3 border-2 border-indigo-200 dark:border-indigo-800 cursor-pointer"
-                          style={{
-                            transform: `rotate(${Math.random() * 6 - 3}deg)`,
-                            animation: 'float 3s ease-in-out infinite',
-                          }}
+                          className="w-16 h-16 flex items-center justify-center text-3xl font-bold bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-400 rounded-lg shadow-lg transition-transform hover:scale-105 border-2 border-indigo-300 dark:border-indigo-600 cursor-default select-none"
+                          style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.1)' }}
                         >
                           {letter.toUpperCase()}
                         </div>
@@ -238,14 +245,14 @@ export default function GameBoard() {
                     </div>
                     <div className="flex items-center gap-4">
                       <p className="text-sm text-gray-600 dark:text-gray-400">
-                        {difficulty} mode • {timeLimit === 'untimed' ? 'Untimed' : `${timeLeft}s`}
+                        {difficulty} mode • <span id="timer">{timeLimit === 'untimed' ? 'Untimed' : `${timeLeft}s`}</span>
                       </p>
                       <button
                         onClick={handleShuffle}
                         className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
                         title="Shuffle Letters"
                       >
-                        <Shuffle size={24} className="text-gray-600 dark:text-gray-400" />
+                        <Shuffle size={24} className="dark:text-gray-200" />
                       </button>
                     </div>
                   </div>
@@ -315,16 +322,82 @@ export default function GameBoard() {
         )}
       </div>
 
+      {isTimeUp && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-8 shadow-2xl transform scale-110 animate-bounce">
+            <h2 className="text-4xl font-bold text-red-600 dark:text-red-400">Time's Up!</h2>
+          </div>
+        </div>
+      )}
+
+      {showSettings && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-2xl max-w-md w-full mx-4">
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">Game Settings</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Difficulty</label>
+                <select
+                  value={difficulty}
+                  onChange={(e) => setDifficulty(e.target.value as Difficulty)}
+                  className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                >
+                  <option value="easy">Easy</option>
+                  <option value="medium">Medium</option>
+                  <option value="hard">Hard</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Number of Letters</label>
+                <select
+                  value={letterCount}
+                  onChange={(e) => setLetterCount(parseInt(e.target.value))}
+                  className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                >
+                  <option value={6}>6 Letters</option>
+                  <option value={7}>7 Letters</option>
+                  <option value={8}>8 Letters</option>
+                  <option value={9}>9 Letters</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Time Limit</label>
+                <select
+                  value={timeLimit}
+                  onChange={(e) => setTimeLimit(e.target.value as TimeLimit)}
+                  className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                >
+                  <option value={30}>30 Seconds</option>
+                  <option value={60}>60 Seconds</option>
+                  <option value={120}>120 Seconds</option>
+                  <option value="untimed">Untimed</option>
+                </select>
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                onClick={() => setShowSettings(false)}
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setShowSettings(false);
+                  handleStart();
+                }}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+              >
+                Start New Game
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showTutorial && (
         <Tutorial onClose={() => setShowTutorial(false)} />
       )}
-      <style jsx>{`
-        @keyframes float {
-          0% { transform: translateY(0px); }
-          50% { transform: translateY(-10px); }
-          100% { transform: translateY(0px); }
-        }
-      `}</style>
     </div>
   );
 }

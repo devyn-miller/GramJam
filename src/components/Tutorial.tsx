@@ -7,60 +7,32 @@ interface TutorialProps {
 
 export function Tutorial({ onClose }: TutorialProps) {
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-8 max-w-2xl w-full mx-4 relative">
+    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-2xl max-w-sm w-full mx-4 relative">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+          className="absolute top-4 right-4 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
         >
-          <X size={24} className="text-gray-600 dark:text-gray-400" />
+          <X size={20} className="text-gray-500 dark:text-gray-400" />
         </button>
+        
+        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">How to Play</h2>
+        
+        <div className="space-y-3 text-gray-600 dark:text-gray-300">
+          <p>• Find words using the displayed letters</p>
+          <p>• Words must be 3+ letters long</p>
+          <p>• Each letter can only be used once</p>
+          <p>• Score points based on word length</p>
+          <p>• Build streaks for bonus points</p>
+        </div>
 
-        <h2 className="text-2xl font-bold text-indigo-600 dark:text-indigo-400 mb-6">How to Play GramJam</h2>
-
-        <div className="space-y-6 text-gray-700 dark:text-gray-300">
-          <section>
-            <h3 className="text-lg font-semibold mb-2">Game Setup</h3>
-            <ul className="list-disc pl-5 space-y-2">
-              <li>Choose your preferred number of letters (6-9)</li>
-              <li>Select a time limit (30s, 60s, 90s, or untimed)</li>
-              <li>Pick your difficulty level (easy, medium, or hard)</li>
-            </ul>
-          </section>
-
-          <section>
-            <h3 className="text-lg font-semibold mb-2">Gameplay</h3>
-            <ul className="list-disc pl-5 space-y-2">
-              <li>Create as many words as possible using the given letters</li>
-              <li>Words must be at least 3 letters long</li>
-              <li>Each letter can only be used once per word</li>
-              <li>Build your streak by finding valid words consecutively</li>
-            </ul>
-          </section>
-
-          <section>
-            <h3 className="text-lg font-semibold mb-2">Scoring</h3>
-            <ul className="list-disc pl-5 space-y-2">
-              <li>Longer words earn more points</li>
-              <li>Maintain a streak for bonus points</li>
-              <li>Different difficulty levels offer score multipliers</li>
-            </ul>
-          </section>
-
-          <section>
-            <h3 className="text-lg font-semibold mb-2">Features</h3>
-            <ul className="list-disc pl-5 space-y-2">
-              <li>Click the settings icon to change game parameters</li>
-              <li>Use the shuffle button to rearrange letters</li>
-              <li>Toggle dark/light mode for your preference</li>
-              <li>Mute/unmute sound effects as needed</li>
-              <li>Share your results with friends</li>
-            </ul>
-          </section>
-
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">
-            Press Enter or click Submit to check your word. Good luck!
-          </p>
+        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <h3 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">Quick Tips</h3>
+          <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-400 space-y-1">
+            <li>Use settings ⚙️ to adjust difficulty</li>
+            <li>Click 🔄 to shuffle letters</li>
+            <li>Press Enter to submit words</li>
+          </ul>
         </div>
       </div>
     </div>
