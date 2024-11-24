@@ -2,17 +2,32 @@
 @media screen and (max-width: 768px) {
   /* Header adjustments */
   .game-stats {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
     padding: 0.5rem;
+    margin-bottom: 1rem;
   }
 
   .game-stats > div {
-    flex: 1 1 auto;
-    min-width: auto;
-    font-size: 0.9rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 5rem;
+    padding: 0.75rem;
+  }
+
+  .game-stats h3 {
+    font-size: 0.75rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .game-stats p {
+    font-size: 1.25rem;
+  }
+
+  .game-stats .text-xs {
+    font-size: 0.7rem;
   }
 
   /* Letter buttons container */
@@ -21,44 +36,62 @@
     flex-wrap: wrap;
     justify-content: center;
     gap: 0.5rem;
-    padding: 0.5rem;
+    padding: 0.75rem;
     max-width: 100%;
-    overflow-x: auto;
   }
 
   .letter-button {
-    width: 3rem !important;
-    height: 3rem !important;
-    font-size: 1.5rem !important;
+    width: 2.75rem !important;
+    height: 2.75rem !important;
+    font-size: 1.25rem !important;
   }
 
   /* Main layout adjustments */
   .main-grid {
     display: flex !important;
     flex-direction: column !important;
-    gap: 1rem !important;
+    gap: 1.25rem !important;
   }
 
   /* Found words section */
   .found-words-section {
-    order: 0 !important; /* Reset order to default */
+    order: 0 !important;
     margin-top: 1rem !important;
   }
 
   .found-words-container {
-    max-height: 300px !important; /* Smaller height on mobile */
+    max-height: 250px !important;
   }
 
   /* Graph adjustments */
   .performance-graph {
     width: 100% !important;
-    margin-top: 1rem;
+    margin-top: 1.25rem;
+    padding: 0.75rem;
   }
 
   /* Input field adjustments */
   .word-input {
     font-size: 1rem !important;
     padding: 0.75rem !important;
+    margin-top: 1rem !important;
+  }
+
+  /* Button adjustments */
+  button {
+    padding: 0.625rem 1rem !important;
+    font-size: 0.875rem !important;
+  }
+
+  button svg {
+    width: 1.125rem !important;
+    height: 1.125rem !important;
+  }
+
+  /* Container padding adjustment */
+  .main-container {
+    padding: 1rem !important;
+    margin: 0.5rem !important;
   }
 
   /* General spacing */
@@ -66,8 +99,19 @@
     margin: 1rem 0;
   }
 
-  /* Container padding adjustment */
-  .main-container {
-    padding: 1rem !important;
+  /* Message display */
+  .message-display {
+    font-size: 0.875rem;
+    margin-top: 0.5rem;
+  }
+
+  /* Animation for feedback messages */
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.3s ease-out;
   }
 }

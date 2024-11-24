@@ -85,28 +85,28 @@ export function ShareResults({ shareData, isDarkMode }: ShareResultsProps) {
 
   return (
     <div className="flex flex-col items-center gap-4">
-      <div className="flex gap-4">
+      <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-3 sm:gap-4">
         <button
           onClick={copyScore}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm sm:text-base rounded-lg hover:bg-indigo-700 transition-colors w-full sm:w-auto"
           title="Copy Score"
         >
-          <Copy size={20} />
+          <Copy size={18} />
           <span>Copy Score</span>
         </button>
         <button
           onClick={shareScore}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm sm:text-base rounded-lg hover:bg-indigo-700 transition-colors w-full sm:w-auto"
           title="Share Score"
         >
-          <Share2 size={20} />
+          <Share2 size={18} />
           <span>Share Score</span>
         </button>
       </div>
       {message && (
-        <div className="text-sm text-indigo-600 dark:text-indigo-400">
+        <p className="text-sm text-green-600 dark:text-green-400 animate-fade-in">
           {message}
-        </div>
+        </p>
       )}
     </div>
   );
