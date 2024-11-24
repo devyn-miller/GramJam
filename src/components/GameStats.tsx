@@ -21,37 +21,37 @@ export default function GameStats({
   isTimeWarning 
 }: GameStatsProps) {
   return (
-    <div className="grid grid-cols-4 gap-4 mb-6">
+    <div className="grid grid-cols-4 gap-4 mb-6 game-stats">
       <div className="bg-white dark:bg-gray-700 p-4 rounded-lg shadow-md overflow-hidden">
-        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-1 truncate">Score</h3>
-        <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400 truncate">{score}</p>
-        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">High: {highScore}</p>
+        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-1">Score</h3>
+        <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{score}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">High: {highScore}</p>
       </div>
       
       <div className="bg-white dark:bg-gray-700 p-4 rounded-lg shadow-md overflow-hidden">
-        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-1 truncate">Time</h3>
-        <p className={`text-2xl font-bold transition-colors duration-200 truncate ${
+        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-1">Time</h3>
+        <p className={`text-2xl font-bold transition-colors duration-200 ${
           isTimeWarning 
             ? 'text-red-600 dark:text-red-400 animate-pulse' 
             : 'text-indigo-600 dark:text-indigo-400'
         }`}>
           {timeLeft}
         </p>
-        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+        <p className="text-xs text-gray-500 dark:text-gray-400">
           {timeLimit === 'untimed' ? 'Untimed' : `${timeLimit}s total`}
         </p>
       </div>
       
       <div className="bg-white dark:bg-gray-700 p-4 rounded-lg shadow-md overflow-hidden">
-        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-1 truncate">Streak</h3>
-        <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400 truncate">{streak}</p>
-        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">Current</p>
+        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-1">Streak</h3>
+        <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{streak}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">Current</p>
       </div>
       
       <div className="bg-white dark:bg-gray-700 p-4 rounded-lg shadow-md overflow-hidden">
-        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-1 truncate">Mode</h3>
-        <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400 capitalize truncate">{difficulty}</p>
-        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">Difficulty</p>
+        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-1">Mode</h3>
+        <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400 capitalize">{difficulty}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">Difficulty</p>
       </div>
     </div>
   );

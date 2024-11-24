@@ -22,10 +22,10 @@ export function FoundWords({ words, totalPossible, difficulty, streakPoints }: F
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200">Found Words</h2>
         <span className="text-sm text-gray-600 dark:text-gray-400">
-          {words.length} / {totalPossible}
+          {words.length} / {Math.max(totalPossible, words.length)}
         </span>
       </div>
-      <div className="h-[400px] overflow-y-auto space-y-2">
+      <div className="h-[400px] overflow-y-auto space-y-2 found-words-container">
         {words.length === 0 ? (
           <p className="text-gray-500 dark:text-gray-400 text-center italic">No words found yet...</p>
         ) : (

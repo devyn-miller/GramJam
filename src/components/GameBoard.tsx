@@ -11,6 +11,19 @@ import { Difficulty, TimeLimit, GameState } from '../types/game';
 import { shuffleString } from '../utils/stringUtils';
 import { PerformanceGraph } from './PerformanceGraph';
 
+import '../styles/mobile.css';
+
+const UNTIMED_BASE_WORDS = 120;
+
+const getDifficultyRequirement = (timeLimit: TimeLimit) => {
+  const baseWords = timeLimit === 'untimed' ? UNTIMED_BASE_WORDS : Number(timeLimit);
+  return {
+    easy: baseWords,
+    medium: Math.floor(baseWords / 2),
+    hard: Math.floor(baseWords / 3)
+  };
+};
+
 export default function GameBoard() {
   const [difficulty, setDifficulty] = useState<Difficulty>('medium');
   const [timeLimit, setTimeLimit] = useState<TimeLimit>(60);
@@ -57,11 +70,25 @@ useEffect(() => {
 
 useEffect(() => {
   const init = () => {
-    initializeGame(difficulty, letterCount);
+    const requirements = getDifficultyRequirement(timeLimit);
+    let attempts = 0;
+    let validGame = false;
+
+    while (!validGame && attempts < 10) {
+      initializeGame(difficulty, letterCount);
+      const possibleWordsCount = wordSet.possibleWords.length;
+      const requiredWords = requirements[difficulty];
+
+      if (possibleWordsCount >= requiredWords) {
+        validGame = true;
+      }
+      attempts++;
+    }
+
     setDisplayLetters(wordSet.letters.join(''));
   };
   init();
-}, []); // Only run once when component mounts
+}, [difficulty, timeLimit, letterCount]);
 
 useEffect(() => {
   setDisplayLetters(wordSet.letters.join(''));
@@ -200,7 +227,7 @@ useEffect(() => {
 
   return (
     <div className={`min-h-screen bg-gradient-to-br ${isDarkMode ? 'from-gray-900 to-indigo-900' : 'from-indigo-500 to-purple-600'} p-4`}>
-      <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-8">
+      <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-8 main-container">
         {showTimesUp && (
           <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
             <div className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-2xl transform scale-100 animate-bounce">
@@ -274,15 +301,15 @@ useEffect(() => {
               isTimeWarning={isTimeWarning}
             />
 
-            <div className="grid grid-cols-3 gap-8 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8 main-grid">
               <div className="col-span-2">
                 <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg">
                   <div className="flex flex-col items-center gap-6">
-                    <div className="flex justify-center gap-4">
+                    <div className="flex justify-center gap-4 letters-container">
                       {displayLetters.split('').map((letter, index) => (
                         <div
                           key={index}
-                          className="w-16 h-16 flex items-center justify-center text-3xl font-bold 
+                          className="letter-button w-16 h-16 flex items-center justify-center text-3xl font-bold 
                             bg-indigo-100 dark:bg-indigo-900 
                             text-indigo-800 dark:text-indigo-100 
                             rounded-lg shadow-lg transition-all 
@@ -320,7 +347,7 @@ useEffect(() => {
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') handleSubmit();
                       }}
-                      className="w-full p-4 text-xl border-2 border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-800 outline-none transition-colors"
+                      className="word-input w-full p-4 text-xl border-2 border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-800 outline-none transition-colors"
                       placeholder="Type your word..."
                       disabled={gameState !== 'playing' || isPaused}
                     />
@@ -341,7 +368,7 @@ useEffect(() => {
                   </div>
                 </div>
 
-                <div className="mt-12">
+                <div className="mt-12 performance-graph">
                   <PerformanceGraph
                     performanceData={performanceData}
                     isDarkMode={isDarkMode}
@@ -351,7 +378,7 @@ useEffect(() => {
                 </div>
               </div>
 
-              <div className="col-span-1">
+              <div className="col-span-1 found-words-section">
                 <FoundWords
                   words={foundWords}
                   totalPossible={wordSet.possibleWords.length}

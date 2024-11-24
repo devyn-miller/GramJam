@@ -1,0 +1,73 @@
+/* Mobile-specific styles */
+@media screen and (max-width: 768px) {
+  /* Header adjustments */
+  .game-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: space-between;
+    padding: 0.5rem;
+  }
+
+  .game-stats > div {
+    flex: 1 1 auto;
+    min-width: auto;
+    font-size: 0.9rem;
+  }
+
+  /* Letter buttons container */
+  .letters-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .letter-button {
+    width: 3rem !important;
+    height: 3rem !important;
+    font-size: 1.5rem !important;
+  }
+
+  /* Main layout adjustments */
+  .main-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1rem !important;
+  }
+
+  /* Found words section */
+  .found-words-section {
+    order: 0 !important; /* Reset order to default */
+    margin-top: 1rem !important;
+  }
+
+  .found-words-container {
+    max-height: 300px !important; /* Smaller height on mobile */
+  }
+
+  /* Graph adjustments */
+  .performance-graph {
+    width: 100% !important;
+    margin-top: 1rem;
+  }
+
+  /* Input field adjustments */
+  .word-input {
+    font-size: 1rem !important;
+    padding: 0.75rem !important;
+  }
+
+  /* General spacing */
+  .section-spacing {
+    margin: 1rem 0;
+  }
+
+  /* Container padding adjustment */
+  .main-container {
+    padding: 1rem !important;
+  }
+}

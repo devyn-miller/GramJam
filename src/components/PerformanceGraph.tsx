@@ -34,7 +34,7 @@ interface PerformanceGraphProps {
   currentTime: number;
 }
 
-export const PerformanceGraph = React.memo(({ performanceData, isDarkMode, timeLimit, currentTime }: PerformanceGraphProps) => {
+export function PerformanceGraph({ performanceData, isDarkMode, timeLimit, currentTime }: PerformanceGraphProps) {
   const gameStartTime = Date.now() - (currentTime * 1000);
   
   // Create data points with proper timestamps
@@ -63,23 +63,6 @@ export const PerformanceGraph = React.memo(({ performanceData, isDarkMode, timeL
     }
   ]);
 
-  // Add final point at game end if there's data and last point isn't at game end
-  if (cumulativeData.length > 0) {
-    const lastPoint = cumulativeData[cumulativeData.length - 1];
-    const gameEndTime = timeLimit === 'untimed' 
-      ? (performanceData.length > 0 ? gameStartTime + (Math.ceil(Number(timeLimit) / 10) * 10 * 1000) : gameStartTime + 120000)
-      : gameStartTime + (Number(timeLimit) * 1000);
-
-    if (lastPoint.timestamp < gameEndTime) {
-      cumulativeData.push({
-        timestamp: gameEndTime,
-        cumulativeScore: lastPoint.cumulativeScore,
-        cumulativeWords: lastPoint.cumulativeWords,
-        timeFromStart: (gameEndTime - gameStartTime) / 1000
-      });
-    }
-  }
-
   const endTime = timeLimit === 'untimed' 
     ? (performanceData.length > 0 ? gameStartTime + (Math.ceil(Number(timeLimit) / 10) * 10 * 1000) : gameStartTime + 120000)
     : gameStartTime + (Number(timeLimit) * 1000);
@@ -87,18 +70,8 @@ export const PerformanceGraph = React.memo(({ performanceData, isDarkMode, timeL
   const commonOptions = {
     responsive: true,
     maintainAspectRatio: false,
-    animation: false,
-    resizeDelay: 100,
-    interaction: {
-      intersect: false,
-      mode: 'nearest' as const
-    },
-    transitions: {
-      active: {
-        animation: {
-          duration: 0
-        }
-      }
+    animation: {
+      duration: 0
     },
     plugins: {
       legend: {
@@ -163,10 +136,10 @@ export const PerformanceGraph = React.memo(({ performanceData, isDarkMode, timeL
           y: entry.cumulativeScore,
         })),
         borderColor: isDarkMode ? 'rgb(129, 140, 248)' : 'rgb(99, 102, 241)',
-        backgroundColor: 'transparent',
+        backgroundColor: isDarkMode ? 'rgba(129, 140, 248, 0.5)' : 'rgba(99, 102, 241, 0.5)',
         tension: 0.4,
         pointRadius: 3,
-        fill: false,
+        fill: true,
         stepped: 'after' as const,
       },
     ],
@@ -181,10 +154,10 @@ export const PerformanceGraph = React.memo(({ performanceData, isDarkMode, timeL
           y: entry.cumulativeWords,
         })),
         borderColor: isDarkMode ? 'rgb(248, 113, 113)' : 'rgb(239, 68, 68)',
-        backgroundColor: 'transparent',
+        backgroundColor: isDarkMode ? 'rgba(248, 113, 113, 0.5)' : 'rgba(239, 68, 68, 0.5)',
         tension: 0.4,
         pointRadius: 3,
-        fill: false,
+        fill: true,
         stepped: 'after' as const,
       },
     ],
@@ -249,15 +222,4 @@ export const PerformanceGraph = React.memo(({ performanceData, isDarkMode, timeL
       </div>
     </div>
   );
-}, (prevProps, nextProps) => {
-  // Only re-render if these props have changed
-  return (
-    prevProps.isDarkMode === nextProps.isDarkMode &&
-    prevProps.timeLimit === nextProps.timeLimit &&
-    prevProps.currentTime === nextProps.currentTime &&
-    prevProps.performanceData.length === nextProps.performanceData.length &&
-    (prevProps.performanceData.length === 0 || 
-      (prevProps.performanceData[prevProps.performanceData.length - 1].timestamp === 
-       nextProps.performanceData[nextProps.performanceData.length - 1].timestamp))
-  );
-});
+}
