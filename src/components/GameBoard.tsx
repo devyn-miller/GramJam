@@ -33,6 +33,7 @@ export default function GameBoard() {
   });
   const [showTimesUp, setShowTimesUp] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [isTimeWarning, setIsTimeWarning] = useState(false);
 
   const { playSound } = useAudioContext();
   const { 
@@ -90,6 +91,40 @@ export default function GameBoard() {
     }
   }, [showTimesUp]);
 
+  useEffect(() => {
+    if (gameState === 'countdown' && countdown > 0) {
+      const timer = setInterval(() => {
+        setCountdown(c => {
+          if (c <= 3 && !isMuted) {
+            playSound('countdown');
+          }
+          return c - 1;
+        });
+      }, 1000);
+      return () => clearInterval(timer);
+    } else if (gameState === 'countdown' && countdown === 0) {
+      setGameState('playing');
+      setTimeLeft(timeLimit === 'untimed' ? Infinity : timeLimit);
+    }
+  }, [countdown, gameState, timeLimit, isMuted, playSound]);
+
+  useEffect(() => {
+    if (timeLeft <= 3 && timeLeft > 0 && !isPaused && gameState === 'playing') {
+      setIsTimeWarning(true);
+      if (!isMuted) {
+        playSound('timeWarning');
+      }
+    } else {
+      setIsTimeWarning(false);
+    }
+  }, [timeLeft, isPaused, gameState, isMuted, playSound]);
+
+  useEffect(() => {
+    if (timeLeft === 0 && !isMuted) {
+      playSound('timeUp');
+    }
+  }, [timeLeft, isMuted, playSound]);
+
   const handleStart = () => {
     setGameState('countdown');
     setCountdown(3);
@@ -132,16 +167,6 @@ export default function GameBoard() {
     setGameState('setup');
     playSound('click');
   };
-
-  useEffect(() => {
-    if (gameState === 'countdown' && countdown > 0) {
-      const timer = setInterval(() => setCountdown(c => c - 1), 1000);
-      return () => clearInterval(timer);
-    } else if (gameState === 'countdown' && countdown === 0) {
-      setGameState('playing');
-      setTimeLeft(timeLimit === 'untimed' ? Infinity : timeLimit);
-    }
-  }, [countdown, gameState, timeLimit]);
 
   if (gameState === 'setup') {
     return <StartScreen 
@@ -229,7 +254,7 @@ export default function GameBoard() {
               streak={streak} 
               difficulty={difficulty} 
               timeLimit={timeLimit}
-              isTimeAlmostUp={timeLeft <= 3 && timeLeft > 0}
+              isTimeWarning={isTimeWarning}
             />
 
             <div className="grid grid-cols-3 gap-8 mb-8">

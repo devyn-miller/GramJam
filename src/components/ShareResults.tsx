@@ -26,6 +26,22 @@ export function ShareResults({ shareData, isDarkMode }: ShareResultsProps) {
     return text;
   };
 
+  const captureGraphs = async () => {
+    const graphsElement = document.querySelector('.performance-graphs');
+    if (!graphsElement) return null;
+    
+    try {
+      const canvas = await html2canvas(graphsElement as HTMLElement, {
+        backgroundColor: isDarkMode ? '#1F2937' : '#FFFFFF',
+        scale: 2, // Higher resolution
+      });
+      return canvas.toDataURL('image/png');
+    } catch (error) {
+      console.error('Error capturing graphs:', error);
+      return null;
+    }
+  };
+
   const showMessage = (text: string) => {
     setMessage(text);
     setTimeout(() => setMessage(''), 2000);
@@ -39,13 +55,24 @@ export function ShareResults({ shareData, isDarkMode }: ShareResultsProps) {
 
   const shareScore = async () => {
     const text = formatShareText(shareData);
+    const graphImage = await captureGraphs();
     
     if (navigator.share) {
       try {
-        await navigator.share({
+        const shareData: ShareData & { files?: File[] } = {
           title: 'GramJam Score',
           text
-        });
+        };
+
+        if (graphImage) {
+          // Convert base64 to blob
+          const response = await fetch(graphImage);
+          const blob = await response.blob();
+          const file = new File([blob], 'gramjam-performance.png', { type: 'image/png' });
+          shareData.files = [file];
+        }
+
+        await navigator.share(shareData);
       } catch (err) {
         if (err instanceof Error && err.name !== 'AbortError') {
           await copyScore();
@@ -53,57 +80,6 @@ export function ShareResults({ shareData, isDarkMode }: ShareResultsProps) {
       }
     } else {
       await copyScore();
-    }
-  };
-
-  const shareWithGraph = async () => {
-    const graphsElement = document.querySelector('.performance-graphs');
-    if (!graphsElement) {
-      showMessage('Could not capture graphs');
-      return;
-    }
-
-    try {
-      const canvas = await html2canvas(graphsElement as HTMLElement, {
-        backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
-        scale: 2,
-      });
-
-      const blob = await new Promise<Blob>((resolve) => {
-        canvas.toBlob((blob) => {
-          if (blob) resolve(blob);
-        }, 'image/png');
-      });
-
-      if (navigator.share) {
-        try {
-          await navigator.share({
-            title: 'GramJam Score',
-            text: formatShareText(shareData),
-            files: [new File([blob], 'performance.png', { type: 'image/png' })]
-          });
-        } catch (err) {
-          if (err instanceof Error && err.name !== 'AbortError') {
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'gramjam-performance.png';
-            a.click();
-            URL.revokeObjectURL(url);
-            showMessage('Graph saved to downloads');
-          }
-        }
-      } else {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'gramjam-performance.png';
-        a.click();
-        URL.revokeObjectURL(url);
-        showMessage('Graph saved to downloads');
-      }
-    } catch (err) {
-      showMessage('Failed to capture graphs');
     }
   };
 
@@ -125,14 +101,6 @@ export function ShareResults({ shareData, isDarkMode }: ShareResultsProps) {
         >
           <Share2 size={20} />
           <span>Share Score</span>
-        </button>
-        <button
-          onClick={shareWithGraph}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-          title="Share with Graph"
-        >
-          <Image size={20} />
-          <span>Share with Graph</span>
         </button>
       </div>
       {message && (

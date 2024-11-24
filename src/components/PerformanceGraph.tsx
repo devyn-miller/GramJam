@@ -12,7 +12,7 @@ import {
   TimeScale,
 } from 'chart.js';
 import 'chartjs-adapter-date-fns';
-import { TimeLimit, PerformanceData, GamePerformanceHistory } from '../types/game';
+import { TimeLimit, GamePerformanceHistory } from '../types/game';
 
 ChartJS.register(
   CategoryScale,
@@ -31,23 +31,43 @@ interface PerformanceGraphProps {
   timeLimit: TimeLimit;
 }
 
-export function PerformanceGraph({ performanceData, isDarkMode, timeLimit }: PerformanceGraphProps) {
-  const convertedData = performanceData.map(perf => ({
-    timestamp: perf.timestamp,
-    score: perf.score,
-    wordsFound: 1
-  }));
+function generateTimeIntervals(startTime: number, timeLimit: TimeLimit): number[] {
+  const duration = timeLimit === 'untimed' ? 120 : Number(timeLimit);
+  const interval = duration / 6;
+  return Array.from({ length: 7 }, (_, i) => startTime + (i * interval * 1000));
+}
 
-  const startTime = convertedData.length > 0 ? convertedData[0].timestamp : Date.now();
+export function PerformanceGraph({ performanceData, isDarkMode, timeLimit }: PerformanceGraphProps) {
+  // Calculate cumulative values
+  const cumulativeData = performanceData.reduce((acc, curr, index) => {
+    const prevScore = index > 0 ? acc[index - 1].cumulativeScore : 0;
+    const prevWords = index > 0 ? acc[index - 1].cumulativeWords : 0;
+    
+    acc.push({
+      timestamp: curr.timestamp,
+      cumulativeScore: prevScore + curr.score,
+      cumulativeWords: prevWords + 1
+    });
+    
+    return acc;
+  }, [] as Array<{
+    timestamp: number;
+    cumulativeScore: number;
+    cumulativeWords: number;
+  }>);
+
+  const startTime = performanceData.length > 0 ? performanceData[0].timestamp : Date.now();
   const endTime = timeLimit === 'untimed' 
-    ? (convertedData.length > 0 ? convertedData[convertedData.length - 1].timestamp : startTime + 120000)
+    ? (performanceData.length > 0 ? performanceData[performanceData.length - 1].timestamp : startTime + 120000)
     : startTime + (Number(timeLimit) * 1000);
   
+  const timeIntervals = generateTimeIntervals(startTime, timeLimit);
+
   const commonOptions = {
     responsive: true,
     maintainAspectRatio: false,
     animation: {
-      duration: 0 // Disable animations for better performance
+      duration: 0
     },
     plugins: {
       legend: {
@@ -74,9 +94,14 @@ export function PerformanceGraph({ performanceData, isDarkMode, timeLimit }: Per
         ticks: {
           color: isDarkMode ? '#e5e7eb' : '#1f2937',
           callback: (value: any) => `${Math.floor((value - startTime) / 1000)}s`,
+          source: 'auto',
+          autoSkip: false,
+          maxTicksLimit: 7,
+          includeBounds: true,
         },
         grid: {
           color: isDarkMode ? 'rgba(229, 231, 235, 0.1)' : 'rgba(31, 41, 55, 0.1)',
+          tickLength: 10,
         },
       },
       y: {
@@ -99,14 +124,15 @@ export function PerformanceGraph({ performanceData, isDarkMode, timeLimit }: Per
     datasets: [
       {
         label: 'Score',
-        data: convertedData.map(entry => ({
+        data: cumulativeData.map(entry => ({
           x: entry.timestamp,
-          y: entry.score,
+          y: entry.cumulativeScore,
         })),
         borderColor: isDarkMode ? 'rgb(129, 140, 248)' : 'rgb(99, 102, 241)', // Indigo
         backgroundColor: isDarkMode ? 'rgba(129, 140, 248, 0.5)' : 'rgba(99, 102, 241, 0.5)',
         tension: 0.4,
         pointRadius: 2,
+        fill: true,
       },
     ],
   };
@@ -115,14 +141,15 @@ export function PerformanceGraph({ performanceData, isDarkMode, timeLimit }: Per
     datasets: [
       {
         label: 'Words Found',
-        data: convertedData.map(entry => ({
+        data: cumulativeData.map(entry => ({
           x: entry.timestamp,
-          y: entry.wordsFound,
+          y: entry.cumulativeWords,
         })),
         borderColor: isDarkMode ? 'rgb(248, 113, 113)' : 'rgb(239, 68, 68)', // Red
         backgroundColor: isDarkMode ? 'rgba(248, 113, 113, 0.5)' : 'rgba(239, 68, 68, 0.5)',
         tension: 0.4,
         pointRadius: 2,
+        fill: true,
       },
     ],
   };
@@ -143,7 +170,7 @@ export function PerformanceGraph({ performanceData, isDarkMode, timeLimit }: Per
         ...commonOptions.scales.y,
         title: {
           ...commonOptions.scales.y.title,
-          text: 'Score',
+          text: 'Cumulative Score',
         },
       },
     },
@@ -165,7 +192,7 @@ export function PerformanceGraph({ performanceData, isDarkMode, timeLimit }: Per
         ...commonOptions.scales.y,
         title: {
           ...commonOptions.scales.y.title,
-          text: 'Words',
+          text: 'Cumulative Words',
         },
         ticks: {
           ...commonOptions.scales.y.ticks,
