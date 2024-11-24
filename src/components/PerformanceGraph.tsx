@@ -88,6 +88,11 @@ export const PerformanceGraph = React.memo(({ performanceData, isDarkMode, timeL
     responsive: true,
     maintainAspectRatio: false,
     animation: false,
+    resizeDelay: 100,
+    interaction: {
+      intersect: false,
+      mode: 'nearest' as const
+    },
     transitions: {
       active: {
         animation: {
@@ -243,5 +248,16 @@ export const PerformanceGraph = React.memo(({ performanceData, isDarkMode, timeL
         <Line data={wordsData} options={wordsOptions} />
       </div>
     </div>
+  );
+}, (prevProps, nextProps) => {
+  // Only re-render if these props have changed
+  return (
+    prevProps.isDarkMode === nextProps.isDarkMode &&
+    prevProps.timeLimit === nextProps.timeLimit &&
+    prevProps.currentTime === nextProps.currentTime &&
+    prevProps.performanceData.length === nextProps.performanceData.length &&
+    (prevProps.performanceData.length === 0 || 
+      (prevProps.performanceData[prevProps.performanceData.length - 1].timestamp === 
+       nextProps.performanceData[nextProps.performanceData.length - 1].timestamp))
   );
 });
