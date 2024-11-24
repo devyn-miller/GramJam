@@ -30,14 +30,34 @@
     font-size: 0.7rem;
   }
 
-  /* Letter buttons container */
+  /* Main game area */
+  .main-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1.25rem !important;
+  }
+
+  /* Game content order */
+  .main-grid > div:first-child {
+    order: 0; /* Letters container first */
+  }
+
+  .found-words-section {
+    order: 1 !important; /* Found words second */
+  }
+
+  .performance-graph {
+    order: 2 !important; /* Performance graph last */
+  }
+
+  /* Letters container */
   .letters-container {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
     gap: 0.5rem;
     padding: 0.75rem;
-    max-width: 100%;
+    margin-bottom: 1rem;
   }
 
   .letter-button {
@@ -46,35 +66,22 @@
     font-size: 1.25rem !important;
   }
 
-  /* Main layout adjustments */
-  .main-grid {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 1.25rem !important;
-  }
-
   /* Found words section */
-  .found-words-section {
-    order: 0 !important;
-    margin-top: 1rem !important;
-  }
-
   .found-words-container {
     max-height: 250px !important;
   }
 
-  /* Graph adjustments */
-  .performance-graph {
-    width: 100% !important;
-    margin-top: 1.25rem;
-    padding: 0.75rem;
-  }
-
-  /* Input field adjustments */
+  /* Input field */
   .word-input {
     font-size: 1rem !important;
     padding: 0.75rem !important;
-    margin-top: 1rem !important;
+    margin: 1rem 0 !important;
+  }
+
+  /* Performance graph */
+  .performance-graph {
+    width: 100% !important;
+    margin-top: 1.25rem;
   }
 
   /* Button adjustments */
@@ -88,7 +95,7 @@
     height: 1.125rem !important;
   }
 
-  /* Container padding adjustment */
+  /* Container adjustments */
   .main-container {
     padding: 1rem !important;
     margin: 0.5rem !important;

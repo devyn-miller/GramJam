@@ -64,6 +64,7 @@ export function useGameLogic() {
     setGamePerformance([]);
     setGameStartTime(null);
     setCurrentGameTime(0);
+    return wordSet; // Return the wordSet for immediate use
   }, []);
 
   const handleSubmit = useCallback(async (word: string): Promise<WordSubmitResult> => {
@@ -80,16 +81,10 @@ export function useGameLogic() {
       return { valid: false, message: 'Word already found!' };
     }
 
-    if (!isValidWord(normalizedWord, displayLetters)) {
+    // Check if the word is in our possible words list
+    if (!possibleWords.includes(normalizedWord)) {
       setStreak(0); // Reset streak for invalid words
-      return { valid: false, message: 'Invalid word! Use only the given letters.' };
-    }
-
-    // Dictionary check
-    const isValid = await validateWord(normalizedWord);
-    if (!isValid) {
-      setStreak(0); // Reset streak for invalid words
-      return { valid: false, message: 'Not a valid word!' };
+      return { valid: false, message: 'Not a valid word for these letters!' };
     }
 
     // Word is valid - calculate score and update state
@@ -100,31 +95,30 @@ export function useGameLogic() {
     setStreak(newStreak);
     setLongestStreak(prev => Math.max(prev, newStreak));
     setFoundWords(prev => [...prev, normalizedWord]);
-    
-    setGamePerformance(prev => [...prev, {
-      word: normalizedWord,
-      score: wordScore,
-      timestamp: gameStartTime ? gameStartTime + (currentGameTime * 1000) : Date.now(),
-      streak: newStreak
-    }]);
 
-    // Update high score if needed
-    const newTotalScore = score + wordScore;
-    if (newTotalScore > highScore) {
-      setHighScore(newTotalScore);
-      localStorage.setItem('highScore', newTotalScore.toString());
+    // Update performance data
+    const timeElapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
+    setGamePerformance(prev => [...prev, { time: timeElapsed, score: wordScore }]);
+
+    if (score > highScore) {
+      setHighScore(score);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('highScore', score.toString());
+      }
     }
 
     return { valid: true, message: `+${wordScore} points!` };
-  }, [displayLetters, foundWords, score, streak, highScore, currentDifficulty, gameStartTime, currentGameTime]);
+  }, [score, highScore, streak, foundWords, possibleWords, currentDifficulty]);
 
   const getGameStats = useCallback((): GameStats => ({
     score,
+    highScore,
     streak,
     longestStreak,
-    wordsFound: foundWords.length,
-    elapsedTime: Math.floor((Date.now() - startTimeRef.current) / 1000)
-  }), [score, streak, longestStreak, foundWords.length]);
+    foundWords: foundWords.length,
+    totalPossible: possibleWords.length,
+    timeElapsed: currentGameTime
+  }), [score, highScore, streak, longestStreak, foundWords.length, possibleWords.length, currentGameTime]);
 
   const shuffleLetters = useCallback(() => {
     const shuffled = shuffleString(displayLetters);
@@ -132,26 +126,25 @@ export function useGameLogic() {
     return shuffled;
   }, [displayLetters]);
 
-  const updateGameTime = useCallback((timeLeft: number, totalTime: number) => {
+  const updateGameTime = useCallback((time: number, totalTime: number) => {
+    setCurrentGameTime(time);
     if (!gameStartTime) {
-      setGameStartTime(Date.now() - ((totalTime - timeLeft) * 1000));
+      setGameStartTime(Date.now());
     }
-    setCurrentGameTime(totalTime - timeLeft);
   }, [gameStartTime]);
 
   return {
+    score,
+    highScore,
+    streak,
+    longestStreak,
+    foundWords,
     wordSet: {
       letters: displayLetters.split(''),
       possibleWords,
       foundWords
     },
-    score,
-    highScore,
-    streak,
-    longestStreak,
     performanceData: gamePerformance,
-    foundWords,
-    totalPossibleWords: possibleWords.length,
     initializeGame,
     submitWord: handleSubmit,
     getGameStats,
