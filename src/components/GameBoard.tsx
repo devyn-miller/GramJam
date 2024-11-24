@@ -47,7 +47,8 @@ export default function GameBoard() {
     submitWord,
     getGameStats,
     foundWords,
-    shuffleLetters
+    shuffleLetters,
+    updateGameTime
   } = useGameLogic();
 
   useEffect(() => {
@@ -76,12 +77,13 @@ export default function GameBoard() {
             setShowTimesUp(true);
             return 0;
           }
+          updateGameTime(prev - 1, Number(timeLimit));
           return prev - 1;
         });
       }, 1000);
     }
     return () => clearInterval(timer);
-  }, [gameState, isPaused, timeLimit]);
+  }, [gameState, isPaused, timeLimit, updateGameTime]);
 
   useEffect(() => {
     if (showTimesUp) {
@@ -96,11 +98,10 @@ export default function GameBoard() {
     if (gameState === 'countdown' && countdown > 0) {
       const timer = setInterval(() => {
         setCountdown(c => {
-          const newCount = c - 1;
-          if (c <= 3 && c > 0 && !isMuted) {
+          if (c > 0) {
             playSound('countdown');
           }
-          return newCount;
+          return c - 1;
         });
       }, 1000);
       return () => clearInterval(timer);
@@ -336,6 +337,7 @@ export default function GameBoard() {
                     performanceData={performanceData}
                     isDarkMode={isDarkMode}
                     timeLimit={timeLimit}
+                    currentTime={Number(timeLimit) - timeLeft}
                   />
                 </div>
               </div>

@@ -39,6 +39,8 @@ export function useGameLogic() {
   const [currentDifficulty, setCurrentDifficulty] = useState<Difficulty>('medium');
   const startTimeRef = useRef(Date.now());
   const [possibleWords, setPossibleWords] = useState<string[]>([]);
+  const [gameStartTime, setGameStartTime] = useState<number | null>(null);
+  const [currentGameTime, setCurrentGameTime] = useState(0);
 
   const calculateWordScore = (word: string): number => {
     const letterMultiplier = LETTER_MULTIPLIERS[word.length] || 1;
@@ -60,7 +62,8 @@ export function useGameLogic() {
     setErrorMessage('');
     setSuccessMessage('');
     setGamePerformance([]);
-    startTimeRef.current = Date.now();
+    setGameStartTime(null);
+    setCurrentGameTime(0);
   }, []);
 
   const handleSubmit = useCallback(async (word: string): Promise<WordSubmitResult> => {
@@ -101,7 +104,7 @@ export function useGameLogic() {
     setGamePerformance(prev => [...prev, {
       word: normalizedWord,
       score: wordScore,
-      timestamp: Date.now(),
+      timestamp: gameStartTime ? gameStartTime + (currentGameTime * 1000) : Date.now(),
       streak: newStreak
     }]);
 
@@ -113,7 +116,7 @@ export function useGameLogic() {
     }
 
     return { valid: true, message: `+${wordScore} points!` };
-  }, [displayLetters, foundWords, score, streak, highScore, currentDifficulty]);
+  }, [displayLetters, foundWords, score, streak, highScore, currentDifficulty, gameStartTime, currentGameTime]);
 
   const getGameStats = useCallback((): GameStats => ({
     score,
@@ -128,6 +131,13 @@ export function useGameLogic() {
     setDisplayLetters(shuffled);
     return shuffled;
   }, [displayLetters]);
+
+  const updateGameTime = useCallback((timeLeft: number, totalTime: number) => {
+    if (!gameStartTime) {
+      setGameStartTime(Date.now() - ((totalTime - timeLeft) * 1000));
+    }
+    setCurrentGameTime(totalTime - timeLeft);
+  }, [gameStartTime]);
 
   return {
     wordSet: {
@@ -145,7 +155,8 @@ export function useGameLogic() {
     initializeGame,
     submitWord: handleSubmit,
     getGameStats,
-    shuffleLetters
+    shuffleLetters,
+    updateGameTime,
   };
 }
 

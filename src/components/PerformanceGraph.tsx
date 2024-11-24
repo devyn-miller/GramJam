@@ -10,6 +10,7 @@ import {
   Tooltip,
   Legend,
   TimeScale,
+  Filler,
 } from 'chart.js';
 import 'chartjs-adapter-date-fns';
 import { TimeLimit, GamePerformanceHistory } from '../types/game';
@@ -22,46 +23,49 @@ ChartJS.register(
   Title,
   Tooltip,
   Legend,
-  TimeScale
+  TimeScale,
+  Filler
 );
 
 interface PerformanceGraphProps {
   performanceData: GamePerformanceHistory;
   isDarkMode: boolean;
   timeLimit: TimeLimit;
+  currentTime: number;
 }
 
-function generateTimeIntervals(startTime: number, timeLimit: TimeLimit): number[] {
-  const duration = timeLimit === 'untimed' ? 120 : Number(timeLimit);
-  const interval = duration / 6;
-  return Array.from({ length: 7 }, (_, i) => startTime + (i * interval * 1000));
-}
-
-export function PerformanceGraph({ performanceData, isDarkMode, timeLimit }: PerformanceGraphProps) {
-  // Calculate cumulative values
-  const cumulativeData = performanceData.reduce((acc, curr, index) => {
-    const prevScore = index > 0 ? acc[index - 1].cumulativeScore : 0;
-    const prevWords = index > 0 ? acc[index - 1].cumulativeWords : 0;
+export function PerformanceGraph({ performanceData, isDarkMode, timeLimit, currentTime }: PerformanceGraphProps) {
+  const gameStartTime = Date.now() - (currentTime * 1000);
+  
+  // Create data points with proper timestamps
+  const cumulativeData = performanceData.reduce((acc, curr) => {
+    const prevScore = acc.length > 0 ? acc[acc.length - 1].cumulativeScore : 0;
+    const prevWords = acc.length > 0 ? acc[acc.length - 1].cumulativeWords : 0;
+    
+    // Calculate time from game start in seconds
+    const timeFromStart = (curr.timestamp - gameStartTime) / 1000;
     
     acc.push({
-      timestamp: curr.timestamp,
+      timestamp: gameStartTime + (timeFromStart * 1000),
       cumulativeScore: prevScore + curr.score,
-      cumulativeWords: prevWords + 1
+      cumulativeWords: prevWords + 1,
+      timeFromStart
     });
     
     return acc;
-  }, [] as Array<{
-    timestamp: number;
-    cumulativeScore: number;
-    cumulativeWords: number;
-  }>);
+  }, [
+    // Add initial (0,0) point
+    {
+      timestamp: gameStartTime,
+      cumulativeScore: 0,
+      cumulativeWords: 0,
+      timeFromStart: 0
+    }
+  ]);
 
-  const startTime = performanceData.length > 0 ? performanceData[0].timestamp : Date.now();
   const endTime = timeLimit === 'untimed' 
-    ? (performanceData.length > 0 ? performanceData[performanceData.length - 1].timestamp : startTime + 120000)
-    : startTime + (Number(timeLimit) * 1000);
-  
-  const timeIntervals = generateTimeIntervals(startTime, timeLimit);
+    ? (performanceData.length > 0 ? gameStartTime + (Math.ceil(Number(timeLimit) / 10) * 10 * 1000) : gameStartTime + 120000)
+    : gameStartTime + (Number(timeLimit) * 1000);
 
   const commonOptions = {
     responsive: true,
@@ -73,35 +77,38 @@ export function PerformanceGraph({ performanceData, isDarkMode, timeLimit }: Per
       legend: {
         display: false,
       },
+      tooltip: {
+        callbacks: {
+          title: (context: any) => {
+            const timestamp = context[0].parsed.x;
+            return `${((timestamp - gameStartTime) / 1000).toFixed(1)}s`;
+          }
+        }
+      }
     },
     scales: {
       x: {
         type: 'time' as const,
         time: {
           unit: 'second' as const,
+          stepSize: timeLimit === 'untimed' ? 20 : Math.ceil(Number(timeLimit) / 6),
           displayFormats: {
-            second: 's\'s\'',
-          },
-          tooltipFormat: 'ss\'s\'',
+            second: 's\'s\''
+          }
         },
-        min: startTime,
+        min: gameStartTime,
         max: endTime,
         title: {
           display: true,
-          text: 'Time',
+          text: 'Time (seconds)',
           color: isDarkMode ? '#e5e7eb' : '#1f2937',
         },
         ticks: {
           color: isDarkMode ? '#e5e7eb' : '#1f2937',
-          callback: (value: any) => `${Math.floor((value - startTime) / 1000)}s`,
-          source: 'auto',
-          autoSkip: false,
-          maxTicksLimit: 7,
-          includeBounds: true,
+          callback: (value: number) => `${Math.floor((value - gameStartTime) / 1000)}s`,
         },
         grid: {
           color: isDarkMode ? 'rgba(229, 231, 235, 0.1)' : 'rgba(31, 41, 55, 0.1)',
-          tickLength: 10,
         },
       },
       y: {
@@ -128,11 +135,12 @@ export function PerformanceGraph({ performanceData, isDarkMode, timeLimit }: Per
           x: entry.timestamp,
           y: entry.cumulativeScore,
         })),
-        borderColor: isDarkMode ? 'rgb(129, 140, 248)' : 'rgb(99, 102, 241)', // Indigo
+        borderColor: isDarkMode ? 'rgb(129, 140, 248)' : 'rgb(99, 102, 241)',
         backgroundColor: isDarkMode ? 'rgba(129, 140, 248, 0.5)' : 'rgba(99, 102, 241, 0.5)',
         tension: 0.4,
-        pointRadius: 2,
+        pointRadius: 3,
         fill: true,
+        stepped: 'after' as const,
       },
     ],
   };
@@ -145,11 +153,12 @@ export function PerformanceGraph({ performanceData, isDarkMode, timeLimit }: Per
           x: entry.timestamp,
           y: entry.cumulativeWords,
         })),
-        borderColor: isDarkMode ? 'rgb(248, 113, 113)' : 'rgb(239, 68, 68)', // Red
+        borderColor: isDarkMode ? 'rgb(248, 113, 113)' : 'rgb(239, 68, 68)',
         backgroundColor: isDarkMode ? 'rgba(248, 113, 113, 0.5)' : 'rgba(239, 68, 68, 0.5)',
         tension: 0.4,
-        pointRadius: 2,
+        pointRadius: 3,
         fill: true,
+        stepped: 'after' as const,
       },
     ],
   };

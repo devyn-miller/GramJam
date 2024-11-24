@@ -38,6 +38,8 @@ export interface ShareData {
   longestStreak: number;
   timeLimit: TimeLimit;
   highScore: number;
+  title?: string;
+  text?: string;
 }
 
 export interface GamePerformance {
