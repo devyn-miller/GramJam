@@ -8,7 +8,7 @@ import { FoundWords } from './FoundWords';
 import { StartScreen } from './StartScreen';
 import { ShareResults } from './ShareResults';
 import { Difficulty, TimeLimit, GameState } from '../types/game';
-import { shuffleString } from '../utils/wordGenerator';
+import { shuffleString } from '../utils/stringUtils';
 import { PerformanceGraph } from './PerformanceGraph';
 
 export default function GameBoard() {
@@ -105,10 +105,10 @@ export default function GameBoard() {
     setSuccessMessage('');
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!userInput.trim()) return;
 
-    const result = submitWord(userInput.trim());
+    const result = await submitWord(userInput.trim());
     if (result.valid) {
       if (!isMuted) playSound('correct');
       setSuccessMessage(result.message);

@@ -2,20 +2,18 @@ import { useRef, useCallback } from 'react';
 
 type SoundType = 'correct' | 'wrong' | 'shuffle' | 'click';
 
-export interface AudioContextType {
-  playSound: (sound: SoundType) => void;
-  // ... other properties
-}
-
 export function useAudioContext() {
   const audioContextRef = useRef<AudioContext | null>(null);
 
-  const playSound = useCallback((type: 'correct' | 'wrong' | 'shuffle') => {
+  const playSound = useCallback((type: SoundType) => {
     if (!audioContextRef.current) {
       audioContextRef.current = new AudioContext();
     }
 
-    const frequency = type === 'correct' ? 800 : type === 'wrong' ? 200 : 400;
+    const frequency = type === 'correct' ? 800 : 
+                     type === 'wrong' ? 200 : 
+                     type === 'click' ? 600 :
+                     400;
     const context = audioContextRef.current;
     
     const oscillator = context.createOscillator();

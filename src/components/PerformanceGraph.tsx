@@ -12,7 +12,7 @@ import {
   TimeScale,
 } from 'chart.js';
 import 'chartjs-adapter-date-fns';
-import { TimeLimit, PerformanceData } from '../types/game';
+import { TimeLimit, PerformanceData, GamePerformanceHistory } from '../types/game';
 
 ChartJS.register(
   CategoryScale,
@@ -26,15 +26,21 @@ ChartJS.register(
 );
 
 interface PerformanceGraphProps {
-  performanceData: PerformanceData[];
+  performanceData: GamePerformanceHistory;
   isDarkMode: boolean;
   timeLimit: TimeLimit;
 }
 
 export function PerformanceGraph({ performanceData, isDarkMode, timeLimit }: PerformanceGraphProps) {
-  const startTime = performanceData.length > 0 ? performanceData[0].timestamp : Date.now();
+  const convertedData = performanceData.map(perf => ({
+    timestamp: perf.timestamp,
+    score: perf.score,
+    wordsFound: 1
+  }));
+
+  const startTime = convertedData.length > 0 ? convertedData[0].timestamp : Date.now();
   const endTime = timeLimit === 'untimed' 
-    ? (performanceData.length > 0 ? performanceData[performanceData.length - 1].timestamp : startTime + 120000)
+    ? (convertedData.length > 0 ? convertedData[convertedData.length - 1].timestamp : startTime + 120000)
     : startTime + (Number(timeLimit) * 1000);
   
   const commonOptions = {
@@ -93,7 +99,7 @@ export function PerformanceGraph({ performanceData, isDarkMode, timeLimit }: Per
     datasets: [
       {
         label: 'Score',
-        data: performanceData.map(entry => ({
+        data: convertedData.map(entry => ({
           x: entry.timestamp,
           y: entry.score,
         })),
@@ -109,7 +115,7 @@ export function PerformanceGraph({ performanceData, isDarkMode, timeLimit }: Per
     datasets: [
       {
         label: 'Words Found',
-        data: performanceData.map(entry => ({
+        data: convertedData.map(entry => ({
           x: entry.timestamp,
           y: entry.wordsFound,
         })),

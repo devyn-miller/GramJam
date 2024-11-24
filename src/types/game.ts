@@ -39,3 +39,12 @@ export interface ShareData {
   timeLimit: TimeLimit;
   highScore: number;
 }
+
+export interface GamePerformance {
+  word: string;
+  score: number;
+  timestamp: number;
+  streak: number;
+}
+
+export type GamePerformanceHistory = GamePerformance[];

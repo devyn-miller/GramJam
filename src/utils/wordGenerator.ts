@@ -1,15 +1,7 @@
-import { WordSet, Difficulty } from '../types/game';
-import { generateRandomLetters } from './letterGenerator';
+import { WordSet, Difficulty, TimeLimit } from '../types/game';
+import { generateRandomLetters, UNTIMED_BASE_WORDS } from './letterGenerator';
+import { shuffleString } from './stringUtils';
 import words from 'an-array-of-english-words';
-
-export function shuffleString(str: string): string {
-  const arr = str.split('');
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr.join('');
-}
 
 // Filter the dictionary to only include words of length 3 or more
 const validWords = words.filter(word => word.length >= 3);
@@ -37,18 +29,30 @@ function getSubwords(letters: string, minLength: number = 3): string[] {
   });
 }
 
-export function generateWordSet(difficulty: Difficulty): WordSet {
+export function generateWordSet(difficulty: Difficulty, timeLimit: TimeLimit): WordSet {
   const letterCount = difficulty === 'easy' ? 6 : difficulty === 'medium' ? 7 : 8;
-  const letters = generateRandomLetters(letterCount);
-  const possibleWords = getSubwords(letters);
+  const targetWordCount = timeLimit === 'untimed' ? 
+    UNTIMED_BASE_WORDS : 
+    timeLimit / (difficulty === 'easy' ? 1 : difficulty === 'medium' ? 2 : 3);
 
-  // Ensure there are at least a few possible words
-  if (possibleWords.length < 3) {
-    return generateWordSet(difficulty); // Try again with new letters
-  }
+  let attempts = 0;
+  let letters: string;
+  let possibleWords: string[];
+
+  do {
+    letters = generateRandomLetters(letterCount);
+    possibleWords = getSubwords(letters);
+    attempts++;
+
+    if (attempts >= 100) {
+      // Fallback to easier requirements after too many attempts
+      console.warn('Falling back to easier word requirements');
+      break;
+    }
+  } while (possibleWords.length < targetWordCount);
 
   return {
-    letters,
+    letters: letters.split(''),
     possibleWords,
     foundWords: []
   };
