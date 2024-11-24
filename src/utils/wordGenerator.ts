@@ -53,3 +53,8 @@ export function generateWordSet(difficulty: Difficulty): WordSet {
     foundWords: []
   };
 }
+
+export const isWordInDictionary = (word: string): boolean => {
+  // Implementation here
+  return true; // Replace with actual dictionary check
+};

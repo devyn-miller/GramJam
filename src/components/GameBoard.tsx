@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Volume2, VolumeX, PauseCircle, PlayCircle, HelpCircle, Share2, Shuffle, RotateCcw, Sun, Moon, Settings } from 'lucide-react';
 import { useAudioContext } from '../hooks/useAudioContext';
 import { useGameLogic } from '../hooks/useGameLogic';
-import { GameStats } from './GameStats';
+import GameStats from './GameStats';
 import { Tutorial } from './Tutorial';
 import { FoundWords } from './FoundWords';
 import { StartScreen } from './StartScreen';
@@ -44,12 +44,25 @@ export default function GameBoard() {
     performanceData,
     initializeGame, 
     submitWord,
-    getGameStats 
+    getGameStats,
+    foundWords
   } = useGameLogic();
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDarkMode);
   }, [isDarkMode]);
+
+  useEffect(() => {
+    const init = () => {
+      initializeGame(difficulty, letterCount);
+      setDisplayLetters(wordSet.letters.join(''));
+    };
+    init();
+  }, []); // Only run once when component mounts
+
+  useEffect(() => {
+    setDisplayLetters(wordSet.letters.join(''));
+  }, [wordSet]);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -78,9 +91,11 @@ export default function GameBoard() {
   }, [showTimesUp]);
 
   const handleStart = () => {
-    initializeGame(difficulty, letterCount);
     setGameState('countdown');
     setCountdown(3);
+    initializeGame(difficulty, letterCount);
+    setDisplayLetters(wordSet.letters.join(''));
+    if (!isMuted) playSound('click');
   };
 
   const handleRestart = () => {
@@ -110,7 +125,7 @@ export default function GameBoard() {
 
   const handleShuffle = () => {
     if (!isMuted) playSound('shuffle');
-    setDisplayLetters(shuffleString(wordSet.letters));
+    setDisplayLetters(shuffleString(displayLetters));
   };
 
   const handleSettingsClick = () => {
@@ -125,9 +140,8 @@ export default function GameBoard() {
     } else if (gameState === 'countdown' && countdown === 0) {
       setGameState('playing');
       setTimeLeft(timeLimit === 'untimed' ? Infinity : timeLimit);
-      setDisplayLetters(shuffleString(wordSet.letters));
     }
-  }, [countdown, gameState, timeLimit, wordSet.letters]);
+  }, [countdown, gameState, timeLimit]);
 
   if (gameState === 'setup') {
     return <StartScreen 
@@ -226,7 +240,13 @@ export default function GameBoard() {
                       {displayLetters.split('').map((letter, index) => (
                         <div
                           key={index}
-                          className="w-16 h-16 flex items-center justify-center text-3xl font-bold bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-400 rounded-lg shadow-lg transition-all hover:scale-110 hover:rotate-3 border-2 border-indigo-200 dark:border-indigo-800 cursor-pointer"
+                          className="w-16 h-16 flex items-center justify-center text-3xl font-bold 
+                            bg-indigo-100 dark:bg-indigo-900 
+                            text-indigo-800 dark:text-indigo-100 
+                            rounded-lg shadow-lg transition-all 
+                            hover:scale-110 hover:rotate-3 
+                            border-2 border-indigo-300 dark:border-indigo-600 
+                            cursor-pointer"
                           style={{
                             transform: `rotate(${Math.random() * 6 - 3}deg)`,
                             animation: 'float 3s ease-in-out infinite',
@@ -287,11 +307,11 @@ export default function GameBoard() {
 
               <div className="col-span-1">
                 <FoundWords
-                  words={wordSet.foundWords}
-                  total={wordSet.possibleWords.length}
+                  words={foundWords}
+                  total={foundWords.length}
                   difficulty={difficulty}
                   streakPoints={Object.fromEntries(
-                    wordSet.foundWords.map((word, index) => [word, index * 5])
+                    foundWords.map((word, index) => [word, index * 5])
                   )}
                 />
               </div>
@@ -318,13 +338,15 @@ export default function GameBoard() {
       {showTutorial && (
         <Tutorial onClose={() => setShowTutorial(false)} />
       )}
-      <style jsx>{`
-        @keyframes float {
-          0% { transform: translateY(0px); }
-          50% { transform: translateY(-10px); }
-          100% { transform: translateY(0px); }
-        }
-      `}</style>
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          @keyframes float {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0); }
+          }
+        `
+      }} />
     </div>
   );
 }

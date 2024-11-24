@@ -1,5 +1,12 @@
 import { useRef, useCallback } from 'react';
 
+type SoundType = 'correct' | 'wrong' | 'shuffle' | 'click';
+
+export interface AudioContextType {
+  playSound: (sound: SoundType) => void;
+  // ... other properties
+}
+
 export function useAudioContext() {
   const audioContextRef = useRef<AudioContext | null>(null);
 

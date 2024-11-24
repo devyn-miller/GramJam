@@ -1,6 +1,7 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { WordSet, Difficulty, WordSubmitResult, GameStats, PerformanceData, GamePerformance } from '../types/game';
 import { generateWordSet, shuffleString, isWordInDictionary } from '../utils/wordGenerator';
+import { generateRandomLetters } from '../utils/letterGenerator';
 
 const LETTER_MULTIPLIERS: Record<number, number> = {
   6: 1,
@@ -15,6 +16,22 @@ const DIFFICULTY_MULTIPLIERS = {
   hard: 2
 };
 
+interface GameLogicReturn {
+  wordSet: {
+    letters: string[];
+    // add other wordSet properties as needed
+  };
+  score: number;
+  highScore: number;
+  streak: number;
+  longestStreak: number;
+  performanceData: any; // replace 'any' with actual type
+  foundWords: string[];
+  initializeGame: (difficulty: Difficulty, letterCount: number) => void;
+  submitWord: (word: string) => { valid: boolean; message: string };
+  getGameStats: () => any; // replace 'any' with actual type
+}
+
 export function useGameLogic() {
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(() => {
@@ -25,15 +42,15 @@ export function useGameLogic() {
   });
   const [streak, setStreak] = useState(0);
   const [foundWords, setFoundWords] = useState<string[]>([]);
-  const [displayLetters, setDisplayLetters] = useState('');
+  const [displayLetters, setDisplayLetters] = useState(() => generateRandomLetters(7));
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [gamePerformance, setGamePerformance] = useState<GamePerformance>([]);
   const [startTime] = useState(() => Date.now());
 
   const initializeGame = useCallback((difficulty: Difficulty, letterCount: number) => {
-    const letters = generateLetters(letterCount, difficulty);
-    setDisplayLetters(letters);
+    const wordSet = generateWordSet(difficulty);
+    setDisplayLetters(wordSet.letters);
     setScore(0);
     setStreak(0);
     setFoundWords([]);
@@ -42,39 +59,11 @@ export function useGameLogic() {
     setGamePerformance([]);
   }, []);
 
-  const generateLetters = (count: number, difficulty: Difficulty): string => {
-    const vowels = 'aeiou';
-    const commonConsonants = 'rstlnm';
-    const uncommonConsonants = 'bcdfghjkpqvwxyz';
-    
-    let letters = '';
-    let vowelCount = Math.floor(count * 0.4); // 40% vowels
-    
-    // Add vowels
-    while (vowelCount > 0) {
-      letters += vowels[Math.floor(Math.random() * vowels.length)];
-      vowelCount--;
+  useEffect(() => {
+    if (!displayLetters) {
+      initializeGame('medium', 7);
     }
-    
-    // Fill remaining with consonants based on difficulty
-    while (letters.length < count) {
-      let consonantPool = '';
-      switch (difficulty) {
-        case 'easy':
-          consonantPool = commonConsonants;
-          break;
-        case 'medium':
-          consonantPool = commonConsonants + uncommonConsonants;
-          break;
-        case 'hard':
-          consonantPool = uncommonConsonants;
-          break;
-      }
-      letters += consonantPool[Math.floor(Math.random() * consonantPool.length)];
-    }
-    
-    return shuffleString(letters);
-  };
+  }, [displayLetters, initializeGame]);
 
   const isValidWord = (word: string, letters: string): boolean => {
     const wordLetters = [...word];
@@ -144,17 +133,19 @@ export function useGameLogic() {
   }), [score, streak, foundWords.length, startTime]);
 
   return {
+    wordSet: {
+      letters: displayLetters.split(''),
+      possibleWords: [],
+      foundWords: foundWords
+    },
     score,
     highScore,
     streak,
-    displayLetters,
-    errorMessage,
-    successMessage,
-    gamePerformance,
+    longestStreak: streak,
+    performanceData: gamePerformance,
     foundWords,
     initializeGame,
-    handleSubmit,
-    shuffleLetters: () => setDisplayLetters(shuffleString(displayLetters)),
+    submitWord: handleSubmit,
     getGameStats
   };
 }

@@ -8,10 +8,9 @@ export interface GameSettings {
 }
 
 export interface WordSet {
-  letters: string;
+  letters: string[];
   possibleWords: string[];
   foundWords: string[];
-  usedWords: Set<string>;  // Track previously used words
 }
 
 export interface WordSubmitResult {
