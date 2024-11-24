@@ -17,25 +17,26 @@ export function useAudioContext() {
     oscillator.connect(gainNode);
     gainNode.connect(context.destination);
 
-    const frequency = type === 'correct' ? 800 : 
+    const frequency = (type === 'countdown' || type === 'timeWarning') ? 523.25 : 
+                     type === 'correct' ? 800 : 
                      type === 'wrong' ? 200 : 
                      type === 'click' ? 600 :
-                     type === 'countdown' ? 523.25 :
-                     type === 'timeWarning' ? 880 :
                      type === 'timeUp' ? 220 :
+                     type === 'shuffle' ? 400 : 
                      400;
 
-    const duration = type === 'timeUp' ? 0.3 : 
-                    type === 'countdown' ? 0.15 :
+    const duration = (type === 'countdown' || type === 'timeWarning') ? 0.15 : 
+                    type === 'timeUp' ? 0.3 : 
                     0.1;
 
     oscillator.frequency.setValueAtTime(frequency, context.currentTime);
-    gainNode.gain.setValueAtTime(0.1, context.currentTime);
     
-    if (type === 'countdown') {
-      gainNode.gain.linearRampToValueAtTime(0.2, context.currentTime + 0.01);
+    if (type === 'countdown' || type === 'timeWarning') {
+      gainNode.gain.setValueAtTime(0, context.currentTime);
+      gainNode.gain.linearRampToValueAtTime(0.2, context.currentTime + 0.02);
       gainNode.gain.linearRampToValueAtTime(0, context.currentTime + duration);
-    } else if (type === 'timeUp') {
+    } else {
+      gainNode.gain.setValueAtTime(0.1, context.currentTime);
       gainNode.gain.linearRampToValueAtTime(0, context.currentTime + duration);
     }
     

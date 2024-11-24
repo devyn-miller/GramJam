@@ -123,6 +123,12 @@ export function useGameLogic() {
     elapsedTime: Math.floor((Date.now() - startTimeRef.current) / 1000)
   }), [score, streak, longestStreak, foundWords.length]);
 
+  const shuffleLetters = useCallback(() => {
+    const shuffled = shuffleString(displayLetters);
+    setDisplayLetters(shuffled);
+    return shuffled;
+  }, [displayLetters]);
+
   return {
     wordSet: {
       letters: displayLetters.split(''),
@@ -138,7 +144,8 @@ export function useGameLogic() {
     totalPossibleWords: possibleWords.length,
     initializeGame,
     submitWord: handleSubmit,
-    getGameStats
+    getGameStats,
+    shuffleLetters
   };
 }
 

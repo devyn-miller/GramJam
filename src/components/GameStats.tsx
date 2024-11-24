@@ -4,7 +4,7 @@ import { TimeLimit, Difficulty } from '../types/game';
 interface GameStatsProps {
   score: number;
   highScore: number;
-  timeLeft: number;
+  timeLeft: number | string;
   streak: number;
   difficulty: Difficulty;
   timeLimit: TimeLimit;
@@ -35,7 +35,7 @@ export default function GameStats({
             ? 'text-red-600 dark:text-red-400 animate-pulse' 
             : 'text-indigo-600 dark:text-indigo-400'
         }`}>
-          {timeLimit === 'untimed' ? '∞' : timeLeft}
+          {timeLeft}
         </p>
         <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
           {timeLimit === 'untimed' ? 'Untimed' : `${timeLimit}s total`}

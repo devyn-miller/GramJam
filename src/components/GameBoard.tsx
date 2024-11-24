@@ -46,7 +46,8 @@ export default function GameBoard() {
     initializeGame, 
     submitWord,
     getGameStats,
-    foundWords
+    foundWords,
+    shuffleLetters
   } = useGameLogic();
 
   useEffect(() => {
@@ -95,10 +96,11 @@ export default function GameBoard() {
     if (gameState === 'countdown' && countdown > 0) {
       const timer = setInterval(() => {
         setCountdown(c => {
-          if (c <= 3 && !isMuted) {
+          const newCount = c - 1;
+          if (c <= 3 && c > 0 && !isMuted) {
             playSound('countdown');
           }
-          return c - 1;
+          return newCount;
         });
       }, 1000);
       return () => clearInterval(timer);
@@ -160,12 +162,20 @@ export default function GameBoard() {
 
   const handleShuffle = () => {
     if (!isMuted) playSound('shuffle');
-    setDisplayLetters(shuffleString(displayLetters));
+    const shuffled = shuffleLetters();
+    setDisplayLetters(shuffled);
   };
 
   const handleSettingsClick = () => {
     setGameState('setup');
     playSound('click');
+  };
+
+  const getTimeDisplay = () => {
+    if (timeLimit === 'untimed') return '∞';
+    if (timeLeft <= 0) return "Time's Up!";
+    if (timeLeft <= 3) return timeLeft; // Show just the number for last 3 seconds
+    return timeLeft;
   };
 
   if (gameState === 'setup') {
@@ -250,7 +260,7 @@ export default function GameBoard() {
             <GameStats 
               score={score} 
               highScore={highScore} 
-              timeLeft={timeLeft} 
+              timeLeft={getTimeDisplay()} 
               streak={streak} 
               difficulty={difficulty} 
               timeLimit={timeLimit}
@@ -343,7 +353,7 @@ export default function GameBoard() {
             </div>
 
             {gameState === 'gameover' && (
-              <div className="mt-8">
+              <div className="mt-8 space-y-8">
                 <ShareResults
                   shareData={{
                     score,
@@ -354,6 +364,32 @@ export default function GameBoard() {
                   }}
                   isDarkMode={isDarkMode}
                 />
+                
+                <div className="flex justify-center gap-4">
+                  <button
+                    onClick={() => {
+                      setGameState('countdown');
+                      setCountdown(3);
+                      initializeGame(difficulty, letterCount);
+                      if (!isMuted) playSound('click');
+                    }}
+                    className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                  >
+                    <RotateCcw size={20} />
+                    <span>Play Again</span>
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      setGameState('setup');
+                      if (!isMuted) playSound('click');
+                    }}
+                    className="flex items-center gap-2 px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                  >
+                    <Settings size={20} />
+                    <span>Change Settings</span>
+                  </button>
+                </div>
               </div>
             )}
           </>
