@@ -1150,7 +1150,7 @@ export function StartScreen({
           <div className="flex justify-center mb-4">
             <Brain size={48} className="text-indigo-600 dark:text-indigo-400" />
           </div>
-          <h1 className="text-4xl font-bold text-indigo-600 dark:text-indigo-400 mb-2">Word Wizard</h1>
+          <h1 className="text-4xl font-bold text-indigo-600 dark:text-indigo-400 mb-2">GramJam</h1>
           <p className="text-gray-600 dark:text-gray-400">Unscramble words, score points, beat the clock!</p>
         </div>
 
