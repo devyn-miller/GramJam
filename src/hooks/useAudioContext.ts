@@ -17,13 +17,25 @@ export function useAudioContext() {
     oscillator.connect(gainNode);
     gainNode.connect(context.destination);
 
-    const COUNTDOWN_FREQUENCY = 523.25; // C5 note
+    const HIGH_FREQUENCY = 800; // Higher frequency for countdown
+    const LOW_FREQUENCY = 523.25; // C5 note for other sounds
     const COUNTDOWN_DURATION = 0.15;
     const COUNTDOWN_GAIN = 0.15;
 
-    // Use consistent frequency and duration for all countdown-related sounds
-    if (type === 'countdown' || type === 'timeWarning' || type === 'timeUp') {
-      oscillator.frequency.setValueAtTime(COUNTDOWN_FREQUENCY, context.currentTime);
+    // Initial countdown sounds (3,2,1,start)
+    if (type === 'countdown') {
+      oscillator.frequency.setValueAtTime(HIGH_FREQUENCY, context.currentTime);
+      gainNode.gain.setValueAtTime(0, context.currentTime);
+      gainNode.gain.linearRampToValueAtTime(COUNTDOWN_GAIN, context.currentTime + 0.02);
+      gainNode.gain.linearRampToValueAtTime(0, context.currentTime + COUNTDOWN_DURATION);
+      oscillator.start();
+      oscillator.stop(context.currentTime + COUNTDOWN_DURATION);
+      return;
+    }
+
+    // Time warning and time up sounds
+    if (type === 'timeWarning' || type === 'timeUp') {
+      oscillator.frequency.setValueAtTime(LOW_FREQUENCY, context.currentTime);
       gainNode.gain.setValueAtTime(0, context.currentTime);
       gainNode.gain.linearRampToValueAtTime(COUNTDOWN_GAIN, context.currentTime + 0.02);
       gainNode.gain.linearRampToValueAtTime(0, context.currentTime + COUNTDOWN_DURATION);
