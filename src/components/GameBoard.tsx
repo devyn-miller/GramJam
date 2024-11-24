@@ -308,7 +308,7 @@ export default function GameBoard() {
               <div className="col-span-1">
                 <FoundWords
                   words={foundWords}
-                  total={foundWords.length}
+                  totalPossible={wordSet.possibleWords.length}
                   difficulty={difficulty}
                   streakPoints={Object.fromEntries(
                     foundWords.map((word, index) => [word, index * 5])

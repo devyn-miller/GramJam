@@ -29,6 +29,11 @@ function getSubwords(letters: string, minLength: number = 3): string[] {
   });
 }
 
+// Add this function to get total possible word count
+export function getPossibleWordCount(letters: string[]): number {
+  return getSubwords(letters.join('')).length;
+}
+
 export function generateWordSet(difficulty: Difficulty, timeLimit: TimeLimit): WordSet {
   const letterCount = difficulty === 'easy' ? 6 : difficulty === 'medium' ? 7 : 8;
   const targetWordCount = timeLimit === 'untimed' ? 
@@ -45,7 +50,6 @@ export function generateWordSet(difficulty: Difficulty, timeLimit: TimeLimit): W
     attempts++;
 
     if (attempts >= 100) {
-      // Fallback to easier requirements after too many attempts
       console.warn('Falling back to easier word requirements');
       break;
     }

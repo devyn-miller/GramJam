@@ -38,6 +38,7 @@ export function useGameLogic() {
   const [gamePerformance, setGamePerformance] = useState<GamePerformanceHistory>([]);
   const [currentDifficulty, setCurrentDifficulty] = useState<Difficulty>('medium');
   const startTimeRef = useRef(Date.now());
+  const [possibleWords, setPossibleWords] = useState<string[]>([]);
 
   const calculateWordScore = (word: string): number => {
     const letterMultiplier = LETTER_MULTIPLIERS[word.length] || 1;
@@ -48,8 +49,9 @@ export function useGameLogic() {
   };
 
   const initializeGame = useCallback((difficulty: Difficulty, letterCount: number) => {
-    const wordSet = generateWordSet(difficulty, 60); // Default to 60s if timeLimit not provided
+    const wordSet = generateWordSet(difficulty, 60);
     setDisplayLetters(wordSet.letters.join(''));
+    setPossibleWords(wordSet.possibleWords);
     setCurrentDifficulty(difficulty);
     setScore(0);
     setStreak(0);
@@ -124,7 +126,7 @@ export function useGameLogic() {
   return {
     wordSet: {
       letters: displayLetters.split(''),
-      possibleWords: [],
+      possibleWords,
       foundWords
     },
     score,
@@ -133,6 +135,7 @@ export function useGameLogic() {
     longestStreak,
     performanceData: gamePerformance,
     foundWords,
+    totalPossibleWords: possibleWords.length,
     initializeGame,
     submitWord: handleSubmit,
     getGameStats

@@ -1,25 +1,19 @@
 import React from 'react';
 import { Difficulty } from '../types/game';
+import { LETTER_MULTIPLIERS, DIFFICULTY_MULTIPLIERS } from '../constants/gameConstants';
 
 interface FoundWordsProps {
   words: string[];
-  total: number;
+  totalPossible: number;
   difficulty: Difficulty;
   streakPoints: { [key: string]: number };
 }
 
-const DIFFICULTY_MULTIPLIERS = {
-  easy: 1,
-  medium: 1.5,
-  hard: 2
-};
-
-export function FoundWords({ words, total, difficulty, streakPoints }: FoundWordsProps) {
+export function FoundWords({ words, totalPossible, difficulty, streakPoints }: FoundWordsProps) {
   const calculatePoints = (word: string, streakBonus: number) => {
-    const basePoints = Math.floor(
-      word.length * 10 * 
-      DIFFICULTY_MULTIPLIERS[difficulty]
-    );
+    const letterMultiplier = LETTER_MULTIPLIERS[word.length] || 1;
+    const difficultyMultiplier = DIFFICULTY_MULTIPLIERS[difficulty];
+    const basePoints = Math.floor(word.length * 10 * letterMultiplier * difficultyMultiplier);
     return basePoints + streakBonus;
   };
 
@@ -28,7 +22,7 @@ export function FoundWords({ words, total, difficulty, streakPoints }: FoundWord
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200">Found Words</h2>
         <span className="text-sm text-gray-600 dark:text-gray-400">
-          {words.length} / {total}
+          {words.length} / {totalPossible}
         </span>
       </div>
       <div className="h-[400px] overflow-y-auto space-y-2">
