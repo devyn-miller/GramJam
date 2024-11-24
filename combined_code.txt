@@ -1,0 +1,1705 @@
+import GameBoard from './components/GameBoard';
+
+function App() {
+  return <GameBoard />;
+}
+
+export default App;
+
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import App from './App.tsx';
+import './index.css';
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <App />
+  </StrictMode>
+);
+
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+/// <reference types="vite/client" />
+
+
+export type Difficulty = 'easy' | 'medium' | 'hard';
+export type TimeLimit = 30 | 60 | 90 | 120 | 'untimed';
+export type GameState = 'setup' | 'countdown' | 'playing' | 'gameover';
+
+export interface GameSettings {
+  difficulty: Difficulty;
+  timeLimit: TimeLimit;
+}
+
+export interface WordSet {
+  letters: string[];
+  possibleWords: string[];
+  foundWords: string[];
+}
+
+export interface WordSubmitResult {
+  valid: boolean;
+  message: string;
+}
+
+export interface GameStats {
+  score: number;
+  streak: number;
+  longestStreak: number;
+  wordsFound: number;
+  elapsedTime: number;
+}
+
+export interface PerformanceData {
+  timestamp: number;
+  score: number;
+  wordsFound: number;
+}
+
+export interface ShareData {
+  score: number;
+  letters: number;
+  longestStreak: number;
+  timeLimit: TimeLimit;
+  highScore: number;
+  title?: string;
+  text?: string;
+}
+
+export interface GamePerformance {
+  word: string;
+  score: number;
+  timestamp: number;
+  streak: number;
+}
+
+export type GamePerformanceHistory = GamePerformance[];
+
+export const LETTER_MULTIPLIERS: Record<number, number> = {
+  3: 1.0,
+  4: 1.2,
+  5: 1.4,
+  6: 1.6,
+  7: 1.8,
+  8: 2.0,
+  9: 2.5
+};
+
+export const DIFFICULTY_MULTIPLIERS = {
+  easy: 1,
+  medium: 1.5,
+  hard: 2
+};
+
+export const STREAK_BONUS = 5; // Points per word in streak 
+
+import { WordSet, Difficulty, TimeLimit } from '../types/game';
+import { generateRandomLetters, UNTIMED_BASE_WORDS } from './letterGenerator';
+import { shuffleString } from './stringUtils';
+import words from 'an-array-of-english-words';
+
+// Filter the dictionary to only include words of length 3 or more
+const validWords = words.filter(word => word.length >= 3);
+
+function getSubwords(letters: string, minLength: number = 3): string[] {
+  const letterCount = new Map<string, number>();
+  letters.toLowerCase().split('').forEach(letter => {
+    letterCount.set(letter, (letterCount.get(letter) || 0) + 1);
+  });
+
+  return validWords.filter(word => {
+    if (word.length < minLength) return false;
+    
+    const wordCount = new Map<string, number>();
+    word.split('').forEach(letter => {
+      wordCount.set(letter, (wordCount.get(letter) || 0) + 1);
+    });
+
+    for (const [letter, count] of wordCount) {
+      if ((letterCount.get(letter) || 0) < count) {
+        return false;
+      }
+    }
+    return true;
+  });
+}
+
+// Add this function to get total possible word count
+export function getPossibleWordCount(letters: string[]): number {
+  return getSubwords(letters.join('')).length;
+}
+
+export function generateWordSet(difficulty: Difficulty, timeLimit: TimeLimit): WordSet {
+  // Fixed letter count of 7 for consistent gameplay
+  const letterCount = 7;
+  
+  // Adjust target word count based on difficulty and time limit
+  const baseWordCount = timeLimit === 'untimed' ? 
+    UNTIMED_BASE_WORDS : 
+    Math.floor(parseInt(timeLimit.toString()) / (difficulty === 'easy' ? 15 : difficulty === 'medium' ? 10 : 7));
+
+  // Adjust target word count based on difficulty
+  const targetWordCount = Math.floor(baseWordCount * (
+    difficulty === 'easy' ? 0.7 :
+    difficulty === 'medium' ? 1 :
+    1.3
+  ));
+
+  let attempts = 0;
+  let letters: string;
+  let possibleWords: string[];
+
+  do {
+    letters = generateRandomLetters(letterCount);
+    possibleWords = getSubwords(letters, difficulty === 'easy' ? 3 : 4);
+    attempts++;
+
+    // Adjust word count requirements based on difficulty
+    const minWordCount = Math.floor(targetWordCount * 0.8);
+    const maxWordCount = Math.ceil(targetWordCount * 1.2);
+
+    if (attempts >= 100) {
+      console.warn('Falling back to easier word requirements');
+      break;
+    }
+
+    // Ensure we have an appropriate number of words for the difficulty level
+    if (possibleWords.length >= minWordCount && possibleWords.length <= maxWordCount) {
+      break;
+    }
+  } while (true);
+
+  return {
+    letters: letters.split(''),
+    possibleWords,
+    foundWords: []
+  };
+}
+
+export const isWordInDictionary = (word: string): boolean => {
+  // Implementation here
+  return true; // Replace with actual dictionary check
+};
+
+import { shuffleString } from './stringUtils';
+
+const VOWELS = ['a', 'e', 'i', 'o', 'u'];
+const CONSONANTS = ['b', 'c', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'm', 'n', 'p', 'q', 'r', 's', 't', 'v', 'w', 'x', 'y', 'z'];
+
+export const UNTIMED_BASE_WORDS = 120; // Base word count for untimed mode
+
+export function generateRandomLetters(count: number): string {
+  const minVowels = Math.floor(count * 0.3); // At least 30% vowels
+  const maxVowels = Math.ceil(count * 0.5); // At most 50% vowels
+  const vowelCount = Math.floor(Math.random() * (maxVowels - minVowels + 1)) + minVowels;
+  const consonantCount = count - vowelCount;
+
+  const letters: string[] = [];
+  
+  // Add vowels
+  for (let i = 0; i < vowelCount; i++) {
+    letters.push(VOWELS[Math.floor(Math.random() * VOWELS.length)]);
+  }
+  
+  // Add consonants
+  for (let i = 0; i < consonantCount; i++) {
+    letters.push(CONSONANTS[Math.floor(Math.random() * CONSONANTS.length)]);
+  }
+
+  // Shuffle the letters
+  return shuffleString(letters.join(''));
+}
+
+export function shuffleString(str: string): string {
+  const arr = str.split('');
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr.join('');
+} 
+
+import React from 'react';
+import { Line } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  TimeScale,
+  Filler,
+} from 'chart.js';
+import 'chartjs-adapter-date-fns';
+import { TimeLimit, GamePerformanceHistory } from '../types/game';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  TimeScale,
+  Filler
+);
+
+interface PerformanceGraphProps {
+  performanceData: GamePerformanceHistory;
+  isDarkMode: boolean;
+  timeLimit: TimeLimit;
+  currentTime: number;
+}
+
+export const PerformanceGraph = React.memo(({ performanceData, isDarkMode, timeLimit, currentTime }: PerformanceGraphProps) => {
+  const gameStartTime = Date.now() - (currentTime * 1000);
+  
+  // Create data points with proper timestamps
+  const cumulativeData = performanceData.reduce((acc, curr) => {
+    const prevScore = acc.length > 0 ? acc[acc.length - 1].cumulativeScore : 0;
+    const prevWords = acc.length > 0 ? acc[acc.length - 1].cumulativeWords : 0;
+    
+    // Calculate time from game start in seconds
+    const timeFromStart = (curr.timestamp - gameStartTime) / 1000;
+    
+    acc.push({
+      timestamp: gameStartTime + (timeFromStart * 1000),
+      cumulativeScore: prevScore + curr.score,
+      cumulativeWords: prevWords + 1,
+      timeFromStart
+    });
+    
+    return acc;
+  }, [
+    // Add initial (0,0) point
+    {
+      timestamp: gameStartTime,
+      cumulativeScore: 0,
+      cumulativeWords: 0,
+      timeFromStart: 0
+    }
+  ]);
+
+  // Add final point at game end if there's data and last point isn't at game end
+  if (cumulativeData.length > 0) {
+    const lastPoint = cumulativeData[cumulativeData.length - 1];
+    const gameEndTime = timeLimit === 'untimed' 
+      ? (performanceData.length > 0 ? gameStartTime + (Math.ceil(Number(timeLimit) / 10) * 10 * 1000) : gameStartTime + 120000)
+      : gameStartTime + (Number(timeLimit) * 1000);
+
+    if (lastPoint.timestamp < gameEndTime) {
+      cumulativeData.push({
+        timestamp: gameEndTime,
+        cumulativeScore: lastPoint.cumulativeScore,
+        cumulativeWords: lastPoint.cumulativeWords,
+        timeFromStart: (gameEndTime - gameStartTime) / 1000
+      });
+    }
+  }
+
+  const endTime = timeLimit === 'untimed' 
+    ? (performanceData.length > 0 ? gameStartTime + (Math.ceil(Number(timeLimit) / 10) * 10 * 1000) : gameStartTime + 120000)
+    : gameStartTime + (Number(timeLimit) * 1000);
+
+  const commonOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: false,
+    resizeDelay: 100,
+    interaction: {
+      intersect: false,
+      mode: 'nearest' as const
+    },
+    transitions: {
+      active: {
+        animation: {
+          duration: 0
+        }
+      }
+    },
+    plugins: {
+      legend: {
+        display: false,
+      },
+      tooltip: {
+        callbacks: {
+          title: (context: any) => {
+            const timestamp = context[0].parsed.x;
+            return `${((timestamp - gameStartTime) / 1000).toFixed(1)}s`;
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        type: 'time' as const,
+        time: {
+          unit: 'second' as const,
+          stepSize: timeLimit === 'untimed' ? 20 : Math.ceil(Number(timeLimit) / 6),
+          displayFormats: {
+            second: 's\'s\''
+          }
+        },
+        min: gameStartTime,
+        max: endTime,
+        title: {
+          display: true,
+          text: 'Time (seconds)',
+          color: isDarkMode ? '#e5e7eb' : '#1f2937',
+        },
+        ticks: {
+          color: isDarkMode ? '#e5e7eb' : '#1f2937',
+          callback: (value: number) => `${Math.floor((value - gameStartTime) / 1000)}s`,
+        },
+        grid: {
+          color: isDarkMode ? 'rgba(229, 231, 235, 0.1)' : 'rgba(31, 41, 55, 0.1)',
+        },
+      },
+      y: {
+        beginAtZero: true,
+        title: {
+          display: true,
+          color: isDarkMode ? '#e5e7eb' : '#1f2937',
+        },
+        ticks: {
+          color: isDarkMode ? '#e5e7eb' : '#1f2937',
+        },
+        grid: {
+          color: isDarkMode ? 'rgba(229, 231, 235, 0.1)' : 'rgba(31, 41, 55, 0.1)',
+        },
+      },
+    },
+  };
+
+  const scoreData = {
+    datasets: [
+      {
+        label: 'Score',
+        data: cumulativeData.map(entry => ({
+          x: entry.timestamp,
+          y: entry.cumulativeScore,
+        })),
+        borderColor: isDarkMode ? 'rgb(129, 140, 248)' : 'rgb(99, 102, 241)',
+        backgroundColor: 'transparent',
+        tension: 0.4,
+        pointRadius: 3,
+        fill: false,
+        stepped: 'after' as const,
+      },
+    ],
+  };
+
+  const wordsData = {
+    datasets: [
+      {
+        label: 'Words Found',
+        data: cumulativeData.map(entry => ({
+          x: entry.timestamp,
+          y: entry.cumulativeWords,
+        })),
+        borderColor: isDarkMode ? 'rgb(248, 113, 113)' : 'rgb(239, 68, 68)',
+        backgroundColor: 'transparent',
+        tension: 0.4,
+        pointRadius: 3,
+        fill: false,
+        stepped: 'after' as const,
+      },
+    ],
+  };
+
+  const scoreOptions = {
+    ...commonOptions,
+    plugins: {
+      ...commonOptions.plugins,
+      title: {
+        display: true,
+        text: 'Score Progress',
+        color: isDarkMode ? '#e5e7eb' : '#1f2937',
+      },
+    },
+    scales: {
+      ...commonOptions.scales,
+      y: {
+        ...commonOptions.scales.y,
+        title: {
+          ...commonOptions.scales.y.title,
+          text: 'Cumulative Score',
+        },
+      },
+    },
+  };
+
+  const wordsOptions = {
+    ...commonOptions,
+    plugins: {
+      ...commonOptions.plugins,
+      title: {
+        display: true,
+        text: 'Words Found',
+        color: isDarkMode ? '#e5e7eb' : '#1f2937',
+      },
+    },
+    scales: {
+      ...commonOptions.scales,
+      y: {
+        ...commonOptions.scales.y,
+        title: {
+          ...commonOptions.scales.y.title,
+          text: 'Cumulative Words',
+        },
+        ticks: {
+          ...commonOptions.scales.y.ticks,
+          stepSize: 1,
+          precision: 0,
+        },
+      },
+    },
+  };
+
+  return (
+    <div className="performance-graphs space-y-8">
+      <div className="w-full h-64">
+        <Line data={scoreData} options={scoreOptions} />
+      </div>
+      <div className="w-full h-64">
+        <Line data={wordsData} options={wordsOptions} />
+      </div>
+    </div>
+  );
+}, (prevProps, nextProps) => {
+  // Only re-render if these props have changed
+  return (
+    prevProps.isDarkMode === nextProps.isDarkMode &&
+    prevProps.timeLimit === nextProps.timeLimit &&
+    prevProps.currentTime === nextProps.currentTime &&
+    prevProps.performanceData.length === nextProps.performanceData.length &&
+    (prevProps.performanceData.length === 0 || 
+      (prevProps.performanceData[prevProps.performanceData.length - 1].timestamp === 
+       nextProps.performanceData[nextProps.performanceData.length - 1].timestamp))
+  );
+});
+
+
+import React, { useState, useEffect } from 'react';
+import { Volume2, VolumeX, PauseCircle, PlayCircle, HelpCircle, Share2, Shuffle, RotateCcw, Sun, Moon, Settings } from 'lucide-react';
+import { useAudioContext } from '../hooks/useAudioContext';
+import { useGameLogic } from '../hooks/useGameLogic';
+import GameStats from './GameStats';
+import { Tutorial } from './Tutorial';
+import { FoundWords } from './FoundWords';
+import { StartScreen } from './StartScreen';
+import { ShareResults } from './ShareResults';
+import { Difficulty, TimeLimit, GameState } from '../types/game';
+import { shuffleString } from '../utils/stringUtils';
+import { PerformanceGraph } from './PerformanceGraph';
+
+export default function GameBoard() {
+  const [difficulty, setDifficulty] = useState<Difficulty>('medium');
+  const [timeLimit, setTimeLimit] = useState<TimeLimit>(60);
+  const [letterCount, setLetterCount] = useState(7);
+  const [timeLeft, setTimeLeft] = useState(timeLimit === 'untimed' ? Infinity : timeLimit);
+  const [gameState, setGameState] = useState<GameState>('setup');
+  const [countdown, setCountdown] = useState(3);
+  const [isPaused, setIsPaused] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [userInput, setUserInput] = useState('');
+  const [displayLetters, setDisplayLetters] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    return false;
+  });
+  const [showTimesUp, setShowTimesUp] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [isTimeWarning, setIsTimeWarning] = useState(false);
+
+  const { playSound } = useAudioContext();
+  const { 
+    wordSet, 
+    score, 
+    highScore, 
+    streak,
+    longestStreak,
+    performanceData,
+    initializeGame, 
+    submitWord,
+    getGameStats,
+    foundWords,
+    shuffleLetters,
+    updateGameTime
+  } = useGameLogic();
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', isDarkMode);
+  }, [isDarkMode]);
+  
+  useEffect(() => {
+    const init = () => {
+      initializeGame(difficulty, letterCount);
+      setDisplayLetters(wordSet.letters.join(''));
+    };
+    init();
+  }, []); // Only run once when component mounts
+  
+  useEffect(() => {
+    setDisplayLetters(wordSet.letters.join(''));
+  }, [wordSet]);
+  
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (gameState === 'playing' && !isPaused && timeLimit !== 'untimed') {
+      timer = setInterval(() => {
+        setTimeLeft(prev => {
+          if (prev <= 0) {
+            setGameState('gameover');
+            setShowTimesUp(true);
+            return 0;
+          }
+          updateGameTime(prev - 1, Number(timeLimit));
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [gameState, isPaused, timeLimit, updateGameTime]);
+  
+  useEffect(() => {
+    if (showTimesUp) {
+      const timer = setTimeout(() => {
+        setShowTimesUp(false);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [showTimesUp]);
+  
+  useEffect(() => {
+    if (gameState === 'countdown' && countdown >= 0) {
+      const timer = setInterval(() => {
+        setCountdown(c => {
+          // Only play sound for 3, 2, 1
+          if (c > 0 && c <= 3 && !isMuted) {
+            playSound('countdown', c); // Pass countdown step for specific sound handling
+          }
+  
+          // When reaching 0, transition to playing state without sound
+          if (c === 0) {
+            setGameState('playing');
+            setTimeLeft(timeLimit === 'untimed' ? Infinity : timeLimit);
+          }
+  
+          return c - 1;
+        });
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [countdown, gameState, timeLimit, isMuted, playSound]);
+  
+  useEffect(() => {
+    if (timeLeft <= 3 && timeLeft > 0 && !isPaused && gameState === 'playing') {
+      setIsTimeWarning(true);
+      if (!isMuted) {
+        playSound('timeWarning');
+      }
+    } else {
+      setIsTimeWarning(false);
+    }
+  }, [timeLeft, isPaused, gameState, isMuted, playSound]);
+  
+  useEffect(() => {
+    if (timeLeft === 0 && !isMuted) {
+      playSound('timeUp');
+    }
+  }, [timeLeft, isMuted, playSound]);
+  
+
+  const handleStart = () => {
+    setGameState('countdown');
+    setCountdown(3);
+    initializeGame(difficulty, letterCount);
+    setDisplayLetters(wordSet.letters.join(''));
+    if (!isMuted) playSound('click');
+  };
+
+  const handleRestart = () => {
+    setGameState('setup');
+    setUserInput('');
+    setErrorMessage('');
+    setSuccessMessage('');
+  };
+
+  const handleSubmit = async () => {
+    if (!userInput.trim()) return;
+
+    const result = await submitWord(userInput.trim());
+    if (result.valid) {
+      if (!isMuted) playSound('correct');
+      setSuccessMessage(result.message);
+      setErrorMessage('');
+      setTimeout(() => setSuccessMessage(''), 1500);
+    } else {
+      if (!isMuted) playSound('wrong');
+      setErrorMessage(result.message);
+      setSuccessMessage('');
+      setTimeout(() => setErrorMessage(''), 1500);
+    }
+    setUserInput('');
+  };
+
+  const handleShuffle = () => {
+    if (!isMuted) playSound('shuffle');
+    const shuffled = shuffleLetters();
+    setDisplayLetters(shuffled);
+  };
+
+  const handleSettingsClick = () => {
+    setGameState('setup');
+    playSound('click');
+  };
+
+  const getTimeDisplay = () => {
+    if (timeLimit === 'untimed') return '∞';
+    if (timeLeft <= 0) return "Time's Up!";
+    if (timeLeft <= 3) return timeLeft; // Show just the number for last 3 seconds
+    return timeLeft;
+  };
+
+  if (gameState === 'setup') {
+    return <StartScreen 
+      onStart={handleStart} 
+      difficulty={difficulty} 
+      setDifficulty={setDifficulty} 
+      timeLimit={timeLimit} 
+      setTimeLimit={setTimeLimit}
+      letterCount={letterCount}
+      setLetterCount={setLetterCount}
+      isDarkMode={isDarkMode}
+    />;
+  }
+
+  return (
+    <div className={`min-h-screen bg-gradient-to-br ${isDarkMode ? 'from-gray-900 to-indigo-900' : 'from-indigo-500 to-purple-600'} p-4`}>
+      <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-8">
+        {showTimesUp && (
+          <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
+            <div className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-2xl transform scale-100 animate-bounce">
+              <h2 className="text-4xl font-bold text-red-600 dark:text-red-400 mb-4">Time's Up!</h2>
+              <p className="text-xl text-gray-600 dark:text-gray-400">Final Score: {score}</p>
+            </div>
+          </div>
+        )}
+
+        <div className="flex justify-between items-center mb-8">
+          <div className="flex items-center gap-4">
+            <h1 className="text-4xl font-bold text-indigo-600 dark:text-indigo-400">GramJam</h1>
+            <button
+              onClick={handleSettingsClick}
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+              title="Settings"
+            >
+              <Settings size={24} className="text-gray-600 dark:text-gray-400" />
+            </button>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setShowTutorial(true)}
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+              title="How to Play"
+            >
+              <HelpCircle size={24} className="text-gray-600 dark:text-gray-400" />
+            </button>
+            <button
+              onClick={() => setIsMuted(!isMuted)}
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+              title={isMuted ? "Unmute" : "Mute"}
+            >
+              {isMuted ? (
+                <VolumeX size={24} className="text-gray-600 dark:text-gray-400" />
+              ) : (
+                <Volume2 size={24} className="text-gray-600 dark:text-gray-400" />
+              )}
+            </button>
+            <button
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+              title={isDarkMode ? "Light Mode" : "Dark Mode"}
+            >
+              {isDarkMode ? (
+                <Sun size={24} className="text-gray-600 dark:text-gray-400" />
+              ) : (
+                <Moon size={24} className="text-gray-600 dark:text-gray-400" />
+              )}
+            </button>
+          </div>
+        </div>
+
+        {gameState === 'countdown' ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <h2 className="text-6xl font-bold text-indigo-600 dark:text-indigo-400 mb-4">
+              {countdown}
+            </h2>
+            <p className="text-xl text-gray-600 dark:text-gray-400">Get Ready!</p>
+          </div>
+        ) : (
+          <>
+            <GameStats 
+              score={score} 
+              highScore={highScore} 
+              timeLeft={getTimeDisplay()} 
+              streak={streak} 
+              difficulty={difficulty} 
+              timeLimit={timeLimit}
+              isTimeWarning={isTimeWarning}
+            />
+
+            <div className="grid grid-cols-3 gap-8 mb-8">
+              <div className="col-span-2">
+                <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg">
+                  <div className="flex flex-col items-center gap-6">
+                    <div className="flex justify-center gap-4">
+                      {displayLetters.split('').map((letter, index) => (
+                        <div
+                          key={index}
+                          className="w-16 h-16 flex items-center justify-center text-3xl font-bold 
+                            bg-indigo-100 dark:bg-indigo-900 
+                            text-indigo-800 dark:text-indigo-100 
+                            rounded-lg shadow-lg transition-all 
+                            hover:scale-110 hover:rotate-3 
+                            border-2 border-indigo-300 dark:border-indigo-600 
+                            cursor-pointer"
+                          style={{
+                            transform: `rotate(${Math.random() * 6 - 3}deg)`,
+                            animation: 'float 3s ease-in-out infinite',
+                          }}
+                        >
+                          {letter.toUpperCase()}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {difficulty} mode • {timeLimit === 'untimed' ? 'Untimed' : `${timeLeft}s`}
+                      </p>
+                      <button
+                        onClick={handleShuffle}
+                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                        title="Shuffle Letters"
+                      >
+                        <Shuffle size={24} className="text-gray-600 dark:text-gray-400" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mt-6">
+                    <input
+                      type="text"
+                      value={userInput}
+                      onChange={(e) => setUserInput(e.target.value.toLowerCase())}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleSubmit();
+                      }}
+                      className="w-full p-4 text-xl border-2 border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-800 outline-none transition-colors"
+                      placeholder="Type your word..."
+                      disabled={gameState !== 'playing' || isPaused}
+                    />
+                    {/* Message container with fixed height to prevent layout shifts */}
+                    <div className="h-6 mt-2">
+                      <div
+                        className={`text-sm transition-opacity duration-200 ${
+                          errorMessage || successMessage ? 'opacity-100' : 'opacity-0'
+                        } ${
+                          errorMessage
+                            ? 'text-red-600 dark:text-red-400'
+                            : 'text-green-600 dark:text-green-400'
+                        }`}
+                      >
+                        {errorMessage || successMessage || '\u00A0'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-12">
+                  <PerformanceGraph
+                    performanceData={performanceData}
+                    isDarkMode={isDarkMode}
+                    timeLimit={timeLimit}
+                    currentTime={Number(timeLimit) - timeLeft}
+                  />
+                </div>
+              </div>
+
+              <div className="col-span-1">
+                <FoundWords
+                  words={foundWords}
+                  totalPossible={wordSet.possibleWords.length}
+                  difficulty={difficulty}
+                  streakPoints={Object.fromEntries(
+                    foundWords.map((word, index) => [word, index * 5])
+                  )}
+                />
+              </div>
+            </div>
+
+            {gameState === 'gameover' && (
+              <div className="mt-8 space-y-8">
+                <ShareResults
+                  shareData={{
+                    score,
+                    letters: wordSet.letters.length,
+                    longestStreak,
+                    timeLimit,
+                    highScore
+                  }}
+                  isDarkMode={isDarkMode}
+                />
+                
+                <div className="flex justify-center gap-4">
+                  <button
+                    onClick={() => {
+                      setGameState('countdown');
+                      setCountdown(3);
+                      initializeGame(difficulty, letterCount);
+                      if (!isMuted) playSound('click');
+                    }}
+                    className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                  >
+                    <RotateCcw size={20} />
+                    <span>Play Again</span>
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      setGameState('setup');
+                      if (!isMuted) playSound('click');
+                    }}
+                    className="flex items-center gap-2 px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                  >
+                    <Settings size={20} />
+                    <span>Change Settings</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {showTutorial && (
+        <Tutorial onClose={() => setShowTutorial(false)} />
+      )}
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          @keyframes float {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0); }
+          }
+        `
+      }} />
+    </div>
+  );
+}
+
+import React from 'react';
+import { AlignJustify } from 'lucide-react';
+
+interface LetterSelectorProps {
+  letterCount: number;
+  onSelect: (count: number) => void;
+}
+
+export function LetterSelector({ letterCount, onSelect }: LetterSelectorProps) {
+  const counts = [6, 7, 8, 9];
+
+  return (
+    <div className="flex flex-col items-center gap-4">
+      <div className="flex justify-center items-center gap-2 text-gray-600 dark:text-gray-400">
+        <AlignJustify size={20} />
+        <span>Letter Count</span>
+      </div>
+      <div className="flex flex-wrap justify-center gap-2">
+        {counts.map((count) => (
+          <button
+            key={count}
+            onClick={() => onSelect(count)}
+            className={`px-4 py-2 rounded-full transition-colors ${
+              letterCount === count
+                ? 'bg-indigo-600 text-white dark:bg-indigo-500'
+                : 'bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200'
+            }`}
+          >
+            {count} letters
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+
+import React from 'react';
+import { TimeLimit } from '../types/game';
+import { Clock } from 'lucide-react';
+
+interface TimeSelectorProps {
+  timeLimit: TimeLimit;
+  onSelect: (time: TimeLimit) => void;
+}
+
+export function TimeSelector({ timeLimit, onSelect }: TimeSelectorProps) {
+  const times: TimeLimit[] = [30, 60, 90, 120, 'untimed'];
+
+  return (
+    <div className="flex flex-col items-center gap-4">
+      <div className="flex justify-center items-center gap-2 text-gray-600 dark:text-gray-400">
+        <Clock size={20} />
+        <span>Time Limit</span>
+      </div>
+      <div className="flex flex-wrap justify-center gap-2">
+        {times.map((time) => (
+          <button
+            key={time}
+            onClick={() => onSelect(time)}
+            className={`px-4 py-2 rounded-full transition-colors ${
+              timeLimit === time
+                ? 'bg-indigo-600 text-white dark:bg-indigo-500'
+                : 'bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200'
+            }`}
+          >
+            {time === 'untimed' ? '∞' : `${time}s`}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+import React from 'react';
+import { TimeLimit, Difficulty } from '../types/game';
+
+interface GameStatsProps {
+  score: number;
+  highScore: number;
+  timeLeft: number | string;
+  streak: number;
+  difficulty: Difficulty;
+  timeLimit: TimeLimit;
+  isTimeWarning: boolean;
+}
+
+export default function GameStats({ 
+  score, 
+  highScore, 
+  timeLeft, 
+  streak, 
+  difficulty, 
+  timeLimit,
+  isTimeWarning 
+}: GameStatsProps) {
+  return (
+    <div className="grid grid-cols-4 gap-4 mb-6">
+      <div className="bg-white dark:bg-gray-700 p-4 rounded-lg shadow-md overflow-hidden">
+        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-1 truncate">Score</h3>
+        <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400 truncate">{score}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">High: {highScore}</p>
+      </div>
+      
+      <div className="bg-white dark:bg-gray-700 p-4 rounded-lg shadow-md overflow-hidden">
+        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-1 truncate">Time</h3>
+        <p className={`text-2xl font-bold transition-colors duration-200 truncate ${
+          isTimeWarning 
+            ? 'text-red-600 dark:text-red-400 animate-pulse' 
+            : 'text-indigo-600 dark:text-indigo-400'
+        }`}>
+          {timeLeft}
+        </p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+          {timeLimit === 'untimed' ? 'Untimed' : `${timeLimit}s total`}
+        </p>
+      </div>
+      
+      <div className="bg-white dark:bg-gray-700 p-4 rounded-lg shadow-md overflow-hidden">
+        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-1 truncate">Streak</h3>
+        <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400 truncate">{streak}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">Current</p>
+      </div>
+      
+      <div className="bg-white dark:bg-gray-700 p-4 rounded-lg shadow-md overflow-hidden">
+        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-1 truncate">Mode</h3>
+        <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400 capitalize truncate">{difficulty}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">Difficulty</p>
+      </div>
+    </div>
+  );
+}
+
+import React from 'react';
+import { X } from 'lucide-react';
+
+interface TutorialProps {
+  onClose: () => void;
+}
+
+export function Tutorial({ onClose }: TutorialProps) {
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-8 max-w-2xl w-full mx-4 relative">
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+        >
+          <X size={24} className="text-gray-600 dark:text-gray-400" />
+        </button>
+
+        <h2 className="text-2xl font-bold text-indigo-600 dark:text-indigo-400 mb-6">How to Play GramJam</h2>
+
+        <div className="space-y-6 text-gray-700 dark:text-gray-300">
+          <section>
+            <h3 className="text-lg font-semibold mb-2">Game Setup</h3>
+            <ul className="list-disc pl-5 space-y-2">
+              <li>Choose your preferred number of letters (6-9)</li>
+              <li>Select a time limit (30s, 60s, 90s, or untimed)</li>
+              <li>Pick your difficulty level (easy, medium, or hard)</li>
+            </ul>
+          </section>
+
+          <section>
+            <h3 className="text-lg font-semibold mb-2">Gameplay</h3>
+            <ul className="list-disc pl-5 space-y-2">
+              <li>Create as many words as possible using the given letters</li>
+              <li>Words must be at least 3 letters long</li>
+              <li>Each letter can only be used once per word</li>
+              <li>Build your streak by finding valid words consecutively</li>
+            </ul>
+          </section>
+
+          <section>
+            <h3 className="text-lg font-semibold mb-2">Scoring</h3>
+            <ul className="list-disc pl-5 space-y-2">
+              <li>Longer words earn more points</li>
+              <li>Maintain a streak for bonus points</li>
+              <li>Different difficulty levels offer score multipliers</li>
+            </ul>
+          </section>
+
+          <section>
+            <h3 className="text-lg font-semibold mb-2">Features</h3>
+            <ul className="list-disc pl-5 space-y-2">
+              <li>Click the settings icon to change game parameters</li>
+              <li>Use the shuffle button to rearrange letters</li>
+              <li>Toggle dark/light mode for your preference</li>
+              <li>Mute/unmute sound effects as needed</li>
+              <li>Share your results with friends</li>
+            </ul>
+          </section>
+
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">
+            Press Enter or click Submit to check your word. Good luck!
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+import React from 'react';
+import { DifficultySelector } from './DifficultySelector';
+import { TimeSelector } from './TimeSelector';
+import { LetterSelector } from './LetterSelector';
+import { Difficulty, TimeLimit } from '../types/game';
+import { Brain } from 'lucide-react';
+
+interface StartScreenProps {
+  onStart: () => void;
+  difficulty: Difficulty;
+  setDifficulty: (d: Difficulty) => void;
+  timeLimit: TimeLimit;
+  setTimeLimit: (t: TimeLimit) => void;
+  letterCount: number;
+  setLetterCount: (c: number) => void;
+  isDarkMode: boolean;
+}
+
+export function StartScreen({
+  onStart,
+  difficulty,
+  setDifficulty,
+  timeLimit,
+  setTimeLimit,
+  letterCount,
+  setLetterCount,
+  isDarkMode
+}: StartScreenProps) {
+  return (
+    <div className={`min-h-screen bg-gradient-to-br ${isDarkMode ? 'from-gray-900 to-indigo-900' : 'from-indigo-500 to-purple-600'} flex items-center justify-center p-4`}>
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-8 max-w-md w-full">
+        <div className="text-center mb-8">
+          <div className="flex justify-center mb-4">
+            <Brain size={48} className="text-indigo-600 dark:text-indigo-400" />
+          </div>
+          <h1 className="text-4xl font-bold text-indigo-600 dark:text-indigo-400 mb-2">Word Wizard</h1>
+          <p className="text-gray-600 dark:text-gray-400">Unscramble words, score points, beat the clock!</p>
+        </div>
+
+        <div className="space-y-8">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-700 mb-3 text-center">Select Difficulty</h2>
+            <DifficultySelector difficulty={difficulty} onSelect={setDifficulty} />
+          </div>
+
+          <div>
+            <h2 className="text-lg font-semibold text-gray-700 mb-3 text-center">Select Time Limit</h2>
+            <TimeSelector timeLimit={timeLimit} onSelect={setTimeLimit} />
+          </div>
+
+          <div>
+            <h2 className="text-lg font-semibold text-gray-700 mb-3 text-center">Select Letter Count</h2>
+            <LetterSelector letterCount={letterCount} onSelect={setLetterCount} />
+          </div>
+
+          <button
+            onClick={onStart}
+            className="w-full py-4 bg-indigo-600 dark:bg-indigo-500 text-white rounded-lg text-xl font-bold hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-colors"
+          >
+            Start Game
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+import React from 'react';
+import { Difficulty } from '../types/game';
+import { LETTER_MULTIPLIERS, DIFFICULTY_MULTIPLIERS } from '../constants/gameConstants';
+
+interface FoundWordsProps {
+  words: string[];
+  totalPossible: number;
+  difficulty: Difficulty;
+  streakPoints: { [key: string]: number };
+}
+
+export function FoundWords({ words, totalPossible, difficulty, streakPoints }: FoundWordsProps) {
+  const calculatePoints = (word: string, streakBonus: number) => {
+    const letterMultiplier = LETTER_MULTIPLIERS[word.length] || 1;
+    const difficultyMultiplier = DIFFICULTY_MULTIPLIERS[difficulty];
+    const basePoints = Math.floor(word.length * 10 * letterMultiplier * difficultyMultiplier);
+    return basePoints + streakBonus;
+  };
+
+  return (
+    <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200">Found Words</h2>
+        <span className="text-sm text-gray-600 dark:text-gray-400">
+          {words.length} / {totalPossible}
+        </span>
+      </div>
+      <div className="h-[400px] overflow-y-auto space-y-2">
+        {words.length === 0 ? (
+          <p className="text-gray-500 dark:text-gray-400 text-center italic">No words found yet...</p>
+        ) : (
+          words.map((word) => (
+            <div
+              key={word}
+              className="bg-white dark:bg-gray-700 p-2 rounded shadow-sm flex justify-between items-center"
+            >
+              <span className="font-medium dark:text-gray-200">{word}</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">
+                {calculatePoints(word, streakPoints[word] || 0)} pts
+              </span>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+import React, { useState } from 'react';
+import { Share2, Copy, Image } from 'lucide-react';
+import html2canvas from 'html2canvas';
+import { TimeLimit, ShareData } from '../types/game';
+
+interface ShareResultsProps {
+  shareData: ShareData;
+  isDarkMode: boolean;
+}
+
+export function ShareResults({ shareData, isDarkMode }: ShareResultsProps) {
+  const [message, setMessage] = useState('');
+
+  const formatShareText = (data: ShareData): string => {
+    const text = [
+      '🎮 GramJam Challenge!',
+      `🎯 Score: ${data.score} points`,
+      `🔤 Letters: ${data.letters}`,
+      `🔥 Longest Streak: ${data.longestStreak}`,
+      data.timeLimit !== 'untimed' ? `⏱️ Time: ${data.timeLimit}s` : '',
+      `🏆 High Score: ${data.highScore}`,
+      '',
+      'Play now at [game-url]'
+    ].filter(Boolean).join('\n');
+
+    return text;
+  };
+
+  const captureGraphs = async () => {
+    const graphsElement = document.querySelector('.performance-graphs');
+    if (!graphsElement) return null;
+    
+    try {
+      const canvas = await html2canvas(graphsElement as HTMLElement, {
+        backgroundColor: isDarkMode ? '#1F2937' : '#FFFFFF',
+        scale: 2, // Higher resolution
+      });
+      return canvas.toDataURL('image/png');
+    } catch (error) {
+      console.error('Error capturing graphs:', error);
+      return null;
+    }
+  };
+
+  const showMessage = (text: string) => {
+    setMessage(text);
+    setTimeout(() => setMessage(''), 2000);
+  };
+
+  const copyScore = async () => {
+    const text = formatShareText(shareData);
+    await navigator.clipboard.writeText(text);
+    showMessage('Score copied to clipboard!');
+  };
+
+  const shareScore = async () => {
+    const text = formatShareText(shareData);
+    const graphImage = await captureGraphs();
+    
+    if (navigator.share) {
+      try {
+        const shareData: ShareData & { files?: File[] } = {
+          title: 'GramJam Score',
+          text
+        };
+
+        if (graphImage) {
+          // Convert base64 to blob
+          const response = await fetch(graphImage);
+          const blob = await response.blob();
+          const file = new File([blob], 'gramjam-performance.png', { type: 'image/png' });
+          shareData.files = [file];
+        }
+
+        await navigator.share(shareData);
+      } catch (err) {
+        if (err instanceof Error && err.name !== 'AbortError') {
+          await copyScore();
+        }
+      }
+    } else {
+      await copyScore();
+    }
+  };
+
+  return (
+    <div className="flex flex-col items-center gap-4">
+      <div className="flex gap-4">
+        <button
+          onClick={copyScore}
+          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+          title="Copy Score"
+        >
+          <Copy size={20} />
+          <span>Copy Score</span>
+        </button>
+        <button
+          onClick={shareScore}
+          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+          title="Share Score"
+        >
+          <Share2 size={20} />
+          <span>Share Score</span>
+        </button>
+      </div>
+      {message && (
+        <div className="text-sm text-indigo-600 dark:text-indigo-400">
+          {message}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+import React from 'react';
+
+type Difficulty = 'easy' | 'medium' | 'hard';
+
+interface DifficultySelectorProps {
+  difficulty: Difficulty;
+  onSelect: (difficulty: Difficulty) => void;
+}
+
+export function DifficultySelector({ difficulty, onSelect }: DifficultySelectorProps) {
+  return (
+    <div className="flex justify-center gap-4">
+      {(['easy', 'medium', 'hard'] as const).map((d) => (
+        <button
+          key={d}
+          onClick={() => onSelect(d)}
+          className={`px-4 py-2 rounded-full capitalize transition-colors ${
+            difficulty === d
+              ? 'bg-indigo-600 text-white'
+              : 'bg-gray-100 hover:bg-gray-200'
+          }`}
+        >
+          {d}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+import { useRef, useCallback } from 'react';
+
+type SoundType = 'correct' | 'wrong' | 'shuffle' | 'click' | 'countdown' | 'timeWarning' | 'timeUp';
+
+export function useAudioContext() {
+  const audioContextRef = useRef<AudioContext | null>(null);
+
+  const playSound = useCallback((type: SoundType, countdownStep?: number) => {
+    if (!audioContextRef.current) {
+      audioContextRef.current = new AudioContext();
+    }
+
+    const context = audioContextRef.current;
+    const oscillator = context.createOscillator();
+    const gainNode = context.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(context.destination);
+
+    // Constants
+    const COUNTDOWN_FREQUENCY = 800; // Consistent frequency for countdown
+    const COUNTDOWN_DURATION = 0.15;
+    const COUNTDOWN_GAIN = 0.15;
+
+    const CORRECT_FREQUENCY = 600;
+    const WRONG_FREQUENCY = 200;
+    const CLICK_FREQUENCY = 400;
+    const SHUFFLE_FREQUENCY = 300;
+    const TIME_WARNING_FREQUENCY = 523.25; // C5 note
+
+    // Play countdown sounds (3, 2, 1 only)
+    if (type === 'countdown') {
+      if (countdownStep && countdownStep >= 1 && countdownStep <= 3) {
+        oscillator.frequency.setValueAtTime(COUNTDOWN_FREQUENCY, context.currentTime);
+        gainNode.gain.setValueAtTime(0, context.currentTime);
+        gainNode.gain.linearRampToValueAtTime(COUNTDOWN_GAIN, context.currentTime + 0.02);
+        gainNode.gain.linearRampToValueAtTime(0, context.currentTime + COUNTDOWN_DURATION);
+        oscillator.start();
+        oscillator.stop(context.currentTime + COUNTDOWN_DURATION);
+      }
+      return; // No sound for "start" (countdownStep === 0)
+    }
+
+    // Time warning and time up sounds
+    if (type === 'timeWarning' || type === 'timeUp') {
+      oscillator.frequency.setValueAtTime(TIME_WARNING_FREQUENCY, context.currentTime);
+      gainNode.gain.setValueAtTime(0, context.currentTime);
+      gainNode.gain.linearRampToValueAtTime(COUNTDOWN_GAIN, context.currentTime + 0.02);
+      gainNode.gain.linearRampToValueAtTime(0, context.currentTime + COUNTDOWN_DURATION);
+      oscillator.start();
+      oscillator.stop(context.currentTime + COUNTDOWN_DURATION);
+      return;
+    }
+
+    // Other sound types
+    const frequency = type === 'correct' ? CORRECT_FREQUENCY : 
+                     type === 'wrong' ? WRONG_FREQUENCY : 
+                     type === 'click' ? CLICK_FREQUENCY :
+                     type === 'shuffle' ? SHUFFLE_FREQUENCY : 
+                     CLICK_FREQUENCY;
+
+    oscillator.frequency.setValueAtTime(frequency, context.currentTime);
+    gainNode.gain.setValueAtTime(0.1, context.currentTime);
+    gainNode.gain.linearRampToValueAtTime(0, context.currentTime + 0.1);
+    
+    oscillator.start();
+    oscillator.stop(context.currentTime + 0.1);
+  }, []);
+
+  return { playSound };
+}
+
+
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { WordSet, Difficulty, WordSubmitResult, GameStats, GamePerformanceHistory } from '../types/game';
+import { generateWordSet, isWordInDictionary } from '../utils/wordGenerator';
+import { shuffleString } from '../utils/stringUtils';
+import { generateRandomLetters } from '../utils/letterGenerator';
+import { validateWord } from '../services/dictionaryService';
+
+const LETTER_MULTIPLIERS: Record<number, number> = {
+  3: 1,    // Base multiplier for 3-letter words
+  4: 1.2,  // Slightly higher for 4-letter words
+  5: 1.4,  // And so on...
+  6: 1.6,
+  7: 1.8,
+  8: 2.0,
+  9: 2.5
+};
+
+const DIFFICULTY_MULTIPLIERS = {
+  easy: 1,
+  medium: 1.5,
+  hard: 2
+};
+
+export function useGameLogic() {
+  const [score, setScore] = useState(0);
+  const [highScore, setHighScore] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return parseInt(localStorage.getItem('highScore') || '0');
+    }
+    return 0;
+  });
+  const [streak, setStreak] = useState(0);
+  const [longestStreak, setLongestStreak] = useState(0);
+  const [foundWords, setFoundWords] = useState<string[]>([]);
+  const [displayLetters, setDisplayLetters] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const [gamePerformance, setGamePerformance] = useState<GamePerformanceHistory>([]);
+  const [currentDifficulty, setCurrentDifficulty] = useState<Difficulty>('medium');
+  const startTimeRef = useRef(Date.now());
+  const [possibleWords, setPossibleWords] = useState<string[]>([]);
+  const [gameStartTime, setGameStartTime] = useState<number | null>(null);
+  const [currentGameTime, setCurrentGameTime] = useState(0);
+
+  const calculateWordScore = (word: string): number => {
+    const letterMultiplier = LETTER_MULTIPLIERS[word.length] || 1;
+    const difficultyMultiplier = DIFFICULTY_MULTIPLIERS[currentDifficulty];
+    const basePoints = Math.floor(word.length * 10 * letterMultiplier * difficultyMultiplier);
+    const streakBonus = streak * 5;  // 5 points per word in streak
+    return basePoints + streakBonus;
+  };
+
+  const initializeGame = useCallback((difficulty: Difficulty, letterCount: number) => {
+    const wordSet = generateWordSet(difficulty, 60);
+    setDisplayLetters(wordSet.letters.join(''));
+    setPossibleWords(wordSet.possibleWords);
+    setCurrentDifficulty(difficulty);
+    setScore(0);
+    setStreak(0);
+    setLongestStreak(0);
+    setFoundWords([]);
+    setErrorMessage('');
+    setSuccessMessage('');
+    setGamePerformance([]);
+    setGameStartTime(null);
+    setCurrentGameTime(0);
+  }, []);
+
+  const handleSubmit = useCallback(async (word: string): Promise<WordSubmitResult> => {
+    const normalizedWord = word.trim().toLowerCase();
+
+    // Basic validation checks
+    if (normalizedWord.length < 3) {
+      setStreak(0); // Reset streak for invalid words
+      return { valid: false, message: 'Words must be at least 3 letters long' };
+    }
+
+    if (foundWords.includes(normalizedWord)) {
+      // Don't reset streak for repeated words
+      return { valid: false, message: 'Word already found!' };
+    }
+
+    if (!isValidWord(normalizedWord, displayLetters)) {
+      setStreak(0); // Reset streak for invalid words
+      return { valid: false, message: 'Invalid word! Use only the given letters.' };
+    }
+
+    // Dictionary check
+    const isValid = await validateWord(normalizedWord);
+    if (!isValid) {
+      setStreak(0); // Reset streak for invalid words
+      return { valid: false, message: 'Not a valid word!' };
+    }
+
+    // Word is valid - calculate score and update state
+    const wordScore = calculateWordScore(normalizedWord);
+    const newStreak = streak + 1;
+    
+    setScore(prevScore => prevScore + wordScore);
+    setStreak(newStreak);
+    setLongestStreak(prev => Math.max(prev, newStreak));
+    setFoundWords(prev => [...prev, normalizedWord]);
+    
+    setGamePerformance(prev => [...prev, {
+      word: normalizedWord,
+      score: wordScore,
+      timestamp: gameStartTime ? gameStartTime + (currentGameTime * 1000) : Date.now(),
+      streak: newStreak
+    }]);
+
+    // Update high score if needed
+    const newTotalScore = score + wordScore;
+    if (newTotalScore > highScore) {
+      setHighScore(newTotalScore);
+      localStorage.setItem('highScore', newTotalScore.toString());
+    }
+
+    return { valid: true, message: `+${wordScore} points!` };
+  }, [displayLetters, foundWords, score, streak, highScore, currentDifficulty, gameStartTime, currentGameTime]);
+
+  const getGameStats = useCallback((): GameStats => ({
+    score,
+    streak,
+    longestStreak,
+    wordsFound: foundWords.length,
+    elapsedTime: Math.floor((Date.now() - startTimeRef.current) / 1000)
+  }), [score, streak, longestStreak, foundWords.length]);
+
+  const shuffleLetters = useCallback(() => {
+    const shuffled = shuffleString(displayLetters);
+    setDisplayLetters(shuffled);
+    return shuffled;
+  }, [displayLetters]);
+
+  const updateGameTime = useCallback((timeLeft: number, totalTime: number) => {
+    if (!gameStartTime) {
+      setGameStartTime(Date.now() - ((totalTime - timeLeft) * 1000));
+    }
+    setCurrentGameTime(totalTime - timeLeft);
+  }, [gameStartTime]);
+
+  return {
+    wordSet: {
+      letters: displayLetters.split(''),
+      possibleWords,
+      foundWords
+    },
+    score,
+    highScore,
+    streak,
+    longestStreak,
+    performanceData: gamePerformance,
+    foundWords,
+    totalPossibleWords: possibleWords.length,
+    initializeGame,
+    submitWord: handleSubmit,
+    getGameStats,
+    shuffleLetters,
+    updateGameTime,
+  };
+}
+
+// Helper function to validate word construction from available letters
+function isValidWord(word: string, letters: string): boolean {
+  const letterPool = new Map<string, number>();
+  
+  // Count available letters
+  for (const letter of letters.toLowerCase()) {
+    letterPool.set(letter, (letterPool.get(letter) || 0) + 1);
+  }
+  
+  // Check if word can be constructed from available letters
+  for (const letter of word.toLowerCase()) {
+    const count = letterPool.get(letter) || 0;
+    if (count === 0) return false;
+    letterPool.set(letter, count - 1);
+  }
+  
+  return true;
+}
+
+// Common words for different difficulty levels
+export const wordList = {
+  easy: [
+    'cat', 'dog', 'hat', 'run', 'jump', 'play', 'book', 'time',
+    'fish', 'bird', 'hand', 'star', 'moon', 'tree', 'home'
+  ],
+  medium: [
+    'garden', 'purple', 'window', 'basket', 'monkey',
+    'dragon', 'castle', 'bridge', 'flower', 'pencil'
+  ],
+  hard: [
+    'butterfly', 'chocolate', 'adventure', 'dangerous',
+    'beautiful', 'wonderful', 'incredible', 'mysterious'
+  ]
+};
+
+import words from 'an-array-of-english-words';
+
+const CACHE_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds
+
+interface CacheEntry {
+  valid: boolean;
+  timestamp: number;
+}
+
+const wordCache = new Map<string, CacheEntry>();
+const validWords = new Set(words.filter(word => word.length >= 3));
+
+export async function validateWord(word: string): Promise<boolean> {
+  const normalizedWord = word.toLowerCase().trim();
+  
+  // Check cache first
+  const cached = wordCache.get(normalizedWord);
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    return cached.valid;
+  }
+
+  try {
+    // First check local dictionary for faster response
+    if (validWords.has(normalizedWord)) {
+      wordCache.set(normalizedWord, {
+        valid: true,
+        timestamp: Date.now()
+      });
+      return true;
+    }
+
+    // If not in local dictionary, check API
+    const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${normalizedWord}`);
+    const isValid = response.ok;
+    
+    // Update cache
+    wordCache.set(normalizedWord, {
+      valid: isValid,
+      timestamp: Date.now()
+    });
+
+    return isValid;
+  } catch (error) {
+    console.error('Dictionary API error:', error);
+    // Fallback to local dictionary
+    return validWords.has(normalizedWord);
+  }
+}
+
+// Clean cache periodically
+setInterval(() => {
+  const now = Date.now();
+  for (const [word, entry] of wordCache.entries()) {
+    if (now - entry.timestamp > CACHE_DURATION) {
+      wordCache.delete(word);
+    }
+  }
+}, CACHE_DURATION); 
+
