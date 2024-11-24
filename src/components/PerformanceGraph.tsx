@@ -34,7 +34,7 @@ interface PerformanceGraphProps {
   currentTime: number;
 }
 
-export function PerformanceGraph({ performanceData, isDarkMode, timeLimit, currentTime }: PerformanceGraphProps) {
+export const PerformanceGraph = React.memo(({ performanceData, isDarkMode, timeLimit, currentTime }: PerformanceGraphProps) => {
   const gameStartTime = Date.now() - (currentTime * 1000);
   
   // Create data points with proper timestamps
@@ -63,6 +63,23 @@ export function PerformanceGraph({ performanceData, isDarkMode, timeLimit, curre
     }
   ]);
 
+  // Add final point at game end if there's data and last point isn't at game end
+  if (cumulativeData.length > 0) {
+    const lastPoint = cumulativeData[cumulativeData.length - 1];
+    const gameEndTime = timeLimit === 'untimed' 
+      ? (performanceData.length > 0 ? gameStartTime + (Math.ceil(Number(timeLimit) / 10) * 10 * 1000) : gameStartTime + 120000)
+      : gameStartTime + (Number(timeLimit) * 1000);
+
+    if (lastPoint.timestamp < gameEndTime) {
+      cumulativeData.push({
+        timestamp: gameEndTime,
+        cumulativeScore: lastPoint.cumulativeScore,
+        cumulativeWords: lastPoint.cumulativeWords,
+        timeFromStart: (gameEndTime - gameStartTime) / 1000
+      });
+    }
+  }
+
   const endTime = timeLimit === 'untimed' 
     ? (performanceData.length > 0 ? gameStartTime + (Math.ceil(Number(timeLimit) / 10) * 10 * 1000) : gameStartTime + 120000)
     : gameStartTime + (Number(timeLimit) * 1000);
@@ -70,8 +87,13 @@ export function PerformanceGraph({ performanceData, isDarkMode, timeLimit, curre
   const commonOptions = {
     responsive: true,
     maintainAspectRatio: false,
-    animation: {
-      duration: 0
+    animation: false,
+    transitions: {
+      active: {
+        animation: {
+          duration: 0
+        }
+      }
     },
     plugins: {
       legend: {
@@ -136,10 +158,10 @@ export function PerformanceGraph({ performanceData, isDarkMode, timeLimit, curre
           y: entry.cumulativeScore,
         })),
         borderColor: isDarkMode ? 'rgb(129, 140, 248)' : 'rgb(99, 102, 241)',
-        backgroundColor: isDarkMode ? 'rgba(129, 140, 248, 0.5)' : 'rgba(99, 102, 241, 0.5)',
+        backgroundColor: 'transparent',
         tension: 0.4,
         pointRadius: 3,
-        fill: true,
+        fill: false,
         stepped: 'after' as const,
       },
     ],
@@ -154,10 +176,10 @@ export function PerformanceGraph({ performanceData, isDarkMode, timeLimit, curre
           y: entry.cumulativeWords,
         })),
         borderColor: isDarkMode ? 'rgb(248, 113, 113)' : 'rgb(239, 68, 68)',
-        backgroundColor: isDarkMode ? 'rgba(248, 113, 113, 0.5)' : 'rgba(239, 68, 68, 0.5)',
+        backgroundColor: 'transparent',
         tension: 0.4,
         pointRadius: 3,
-        fill: true,
+        fill: false,
         stepped: 'after' as const,
       },
     ],
@@ -222,4 +244,4 @@ export function PerformanceGraph({ performanceData, isDarkMode, timeLimit, curre
       </div>
     </div>
   );
-}
+});
