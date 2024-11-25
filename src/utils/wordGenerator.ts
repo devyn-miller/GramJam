@@ -34,20 +34,16 @@ export function getPossibleWordCount(letters: string[]): number {
   return getSubwords(letters.join('')).length;
 }
 
-export function generateWordSet(difficulty: Difficulty, timeLimit: TimeLimit): WordSet {
-  // Fixed letter count of 7 for consistent gameplay
-  const letterCount = 7;
-  
+export function generateWordSet(difficulty: Difficulty, timeLimit: TimeLimit, letterCount: number): WordSet {
   // Adjust target word count based on difficulty and time limit
   const baseWordCount = timeLimit === 'untimed' ? 
     UNTIMED_BASE_WORDS : 
-    Math.floor(parseInt(timeLimit.toString()) / (difficulty === 'easy' ? 15 : difficulty === 'medium' ? 10 : 7));
+    timeLimit;
 
-  // Adjust target word count based on difficulty
   const targetWordCount = Math.floor(baseWordCount * (
-    difficulty === 'easy' ? 0.7 :
-    difficulty === 'medium' ? 1 :
-    1.3
+    difficulty === 'easy' ? 1 :
+    difficulty === 'medium' ? 0.5 :
+    0.33
   ));
 
   let attempts = 0;
@@ -59,17 +55,13 @@ export function generateWordSet(difficulty: Difficulty, timeLimit: TimeLimit): W
     possibleWords = getSubwords(letters, difficulty === 'easy' ? 3 : 4);
     attempts++;
 
-    // Adjust word count requirements based on difficulty
-    const minWordCount = Math.floor(targetWordCount * 0.8);
-    const maxWordCount = Math.ceil(targetWordCount * 1.2);
-
     if (attempts >= 100) {
       console.warn('Falling back to easier word requirements');
       break;
     }
 
     // Ensure we have an appropriate number of words for the difficulty level
-    if (possibleWords.length >= minWordCount && possibleWords.length <= maxWordCount) {
+    if (possibleWords.length >= targetWordCount) {
       break;
     }
   } while (true);

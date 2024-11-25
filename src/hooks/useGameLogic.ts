@@ -51,7 +51,7 @@ export function useGameLogic() {
   };
 
   const initializeGame = useCallback((difficulty: Difficulty, letterCount: number) => {
-    const wordSet = generateWordSet(difficulty, 60);
+    const wordSet = generateWordSet(difficulty, 60, letterCount);
     setDisplayLetters(wordSet.letters.join(''));
     setPossibleWords(wordSet.possibleWords);
     setCurrentDifficulty(difficulty);
