@@ -278,21 +278,11 @@ useEffect(() => {
               <div className="col-span-2">
                 <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg">
                   <div className="flex flex-col items-center gap-6">
-                    <div className="flex justify-center gap-4">
-                      {displayLetters.split('').map((letter, index) => (
+                    <div className="grid auto-fit-letter-grid gap-2 mb-6">
+                      {wordSet.letters.map((letter, index) => (
                         <div
                           key={index}
-                          className="w-16 h-16 flex items-center justify-center text-3xl font-bold 
-                            bg-indigo-100 dark:bg-indigo-900 
-                            text-indigo-800 dark:text-indigo-100 
-                            rounded-lg shadow-lg transition-all 
-                            hover:scale-110 hover:rotate-3 
-                            border-2 border-indigo-300 dark:border-indigo-600 
-                            cursor-pointer"
-                          style={{
-                            transform: `rotate(${Math.random() * 6 - 3}deg)`,
-                            animation: 'float 3s ease-in-out infinite',
-                          }}
+                          className="aspect-square flex items-center justify-center text-2xl sm:text-3xl font-bold bg-indigo-700 dark:bg-indigo-600 text-white rounded-lg shadow-md transform hover:scale-105 transition-transform"
                         >
                           {letter.toUpperCase()}
                         </div>

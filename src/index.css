@@ -1,3 +1,25 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Add responsive grid for letter tiles */
+.auto-fit-letter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(40px, 100%/9), 1fr));
+  width: 100%;
+  max-width: 600px; /* Adjust based on your layout */
+  margin: 0 auto;
+}
+
+/* Ensure letter tiles maintain aspect ratio */
+.auto-fit-letter-grid > div {
+  min-width: 0;
+  width: 100%;
+}
+
+/* Optional: Add media queries for responsive font sizes */
+@media (max-width: 480px) {
+  .auto-fit-letter-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(35px, 100%/9), 1fr));
+  }
+}
